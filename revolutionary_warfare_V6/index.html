@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Revolutionary Warfare — First-Person Battlefield Build</title>
+<style>
+  :root{
+    --paper:#f1e5c8;--ink:#162017;--gold:#c19a4b;--panel:rgba(14,25,17,.95);
+    --blue:#254f7f;--red:#8e3029;--light:#fff7df;--bronze:#8d683c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111912;color:var(--light);font-family:Georgia,"Times New Roman",serif}
+  #wrap{position:relative;width:100vw;height:100vh;background:#111912}
+  canvas{display:block;width:100vw;height:100vh;background:#111912;cursor:crosshair}
+  .hidden{display:none!important}
+  .screen{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(rgba(7,12,8,.67),rgba(7,12,8,.9))}
+  .panel{width:min(820px,94vw);max-height:92vh;overflow:auto;padding:28px;border:3px solid var(--gold);border-radius:11px;background:linear-gradient(145deg,#17261b,#0d1710);box-shadow:0 24px 90px #000}
+  h1,h2,h3{margin:.15em 0 .45em;letter-spacing:.035em} h1{font-size:clamp(2.35rem,6vw,4.8rem);color:#f2d99f;text-shadow:0 3px #37200f} h2{color:#f2d99f}
+  .subtitle{font-size:1.14rem;opacity:.9;margin-bottom:20px}.notice{padding:11px 13px;margin:12px 0;background:rgba(193,154,75,.13);border-left:4px solid var(--gold)}
+  .menuGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0}
+  button,select{font:inherit}button{cursor:pointer;padding:13px 16px;border:2px solid #d6b76f;border-radius:7px;background:#263c2a;color:#fff8df;font-weight:bold;transition:.15s}button:hover:not(:disabled){transform:translateY(-1px);background:#37563c}button:disabled{opacity:.43;cursor:not-allowed}.primary{background:#28537f}.danger{background:#662720}.small{padding:8px 10px}
+  select{padding:9px;background:#efe0ba;color:#162017;border-radius:6px}.setting{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.15)}
+  .badge{display:inline-block;padding:4px 9px;border:1px solid #d2b76d;border-radius:999px;font-size:.88rem}.muted{opacity:.76}.accent{color:#f2d47e}kbd{padding:2px 5px;border:1px solid #aaa;border-bottom-width:2px;border-radius:4px;background:#eee7d5;color:#111;font-family:monospace}
+  #hud{position:absolute;inset:0;z-index:7;pointer-events:none}.hudBox{position:absolute;padding:10px 12px;border:2px solid rgba(236,211,145,.75);border-radius:8px;background:rgba(10,18,12,.84);backdrop-filter:blur(3px);text-shadow:0 1px #000}
+  #status{left:12px;top:12px;min-width:275px}#objective{right:12px;top:12px;width:min(370px,44vw)}#inventory{left:12px;bottom:12px;min-width:405px}#weapon{right:12px;bottom:12px;min-width:270px;text-align:right}
+  .bar{height:12px;width:230px;margin-top:4px;overflow:hidden;border:1px solid #e0c986;border-radius:8px;background:#261b16}.fill{height:100%;background:#8ead66;transition:width .1s}.reload{background:#d7b455}
+  #message{position:absolute;left:50%;top:15%;transform:translateX(-50%);width:min(760px,90vw);text-align:center;font-size:1.18rem;font-weight:bold;text-shadow:0 2px 4px #000;opacity:0;transition:.2s}
+  #controls{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);padding:7px 12px;border:1px solid rgba(255,255,255,.28);border-radius:7px;background:rgba(8,14,9,.8);font-size:.79rem;white-space:nowrap}
+  #clickPrompt{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10;width:min(520px,88vw);padding:20px;text-align:center;border:2px solid #e0bd69;border-radius:10px;background:rgba(10,20,13,.94);pointer-events:auto}
+  #craftPanel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:12;width:min(650px,90vw);padding:20px;border:3px solid var(--gold);border-radius:10px;background:rgba(12,22,15,.97);pointer-events:auto}#craftPanel button{margin:5px}
+  #bossBanner{position:absolute;left:50%;top:28%;transform:translate(-50%,-50%);z-index:9;width:min(760px,90vw);padding:18px;text-align:center;border-top:3px solid #e5c574;border-bottom:3px solid #e5c574;background:rgba(91,28,24,.91);font-size:1.2rem;text-shadow:0 2px #000;opacity:0;transition:.25s}
+  #reloadTimer{position:absolute;left:50%;top:66%;transform:translate(-50%,-50%);z-index:11;min-width:240px;padding:11px 18px;text-align:center;border:2px solid #e6c66f;border-radius:9px;background:rgba(12,18,13,.91);box-shadow:0 8px 30px rgba(0,0,0,.45);opacity:0;transition:opacity .12s}
+  #reloadTimer.active{opacity:1}#reloadTimer strong{display:block;font-size:2rem;line-height:1;color:#ffe8a8}#reloadTimer .miniBar{height:7px;margin-top:8px;border-radius:8px;overflow:hidden;background:#352a1b}#reloadTimer .miniFill{height:100%;background:linear-gradient(90deg,#b68a38,#f2d77d)}
+  .loadoutTable{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92rem}.loadoutTable th,.loadoutTable td{padding:8px;border-bottom:1px solid rgba(255,255,255,.17);text-align:left}.loadoutTable th{color:#f2d99f}.sourceNote{font-size:.86rem;opacity:.76}
+  .skinGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:18px 0}.skinCard{padding:14px;border:2px solid rgba(214,183,111,.55);border-radius:10px;background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(0,0,0,.17));box-shadow:inset 0 1px rgba(255,255,255,.08)}.skinCard.equipped{border-color:#f1d378;box-shadow:0 0 0 2px rgba(241,211,120,.18),inset 0 1px rgba(255,255,255,.1)}.uniformPreview{height:108px;position:relative;margin-bottom:10px;border-radius:7px;overflow:hidden;background:linear-gradient(#9cb4c4 0 48%,#52633e 48%)}.uniformPreview .coat{position:absolute;left:50%;top:35px;width:56px;height:64px;transform:translateX(-50%);border-radius:17px 17px 7px 7px;background:var(--coat);box-shadow:inset -12px 0 var(--coatDark),inset 9px 0 rgba(255,255,255,.08),0 10px 15px rgba(0,0,0,.35)}.uniformPreview .lapel{position:absolute;left:50%;top:39px;width:29px;height:40px;transform:translateX(-50%);clip-path:polygon(0 0,50% 40%,100% 0,82% 100%,18% 100%);background:var(--facing)}.uniformPreview .head{position:absolute;left:50%;top:13px;width:27px;height:30px;transform:translateX(-50%);border-radius:45%;background:#c99166;box-shadow:inset -6px -2px rgba(78,43,27,.2)}.uniformPreview .hat{position:absolute;left:50%;top:7px;width:53px;height:16px;transform:translateX(-50%);clip-path:polygon(0 75%,25% 0,50% 48%,75% 0,100% 75%);background:#282520}.coin{color:#ffe084;text-shadow:0 1px #5d3b08}.storeTop{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+
+  #mobileControls{position:absolute;inset:0;z-index:15;display:none;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none}
+  #lookZone{position:absolute;right:0;top:0;width:56%;height:100%;pointer-events:auto;touch-action:none}
+  #movePad{position:absolute;left:22px;bottom:24px;width:150px;height:150px;border:2px solid rgba(255,244,211,.48);border-radius:50%;background:rgba(12,20,13,.34);pointer-events:auto;touch-action:none;box-shadow:inset 0 0 28px rgba(0,0,0,.28)}
+  #moveStick{position:absolute;left:50%;top:50%;width:66px;height:66px;transform:translate(-50%,-50%);border-radius:50%;border:2px solid rgba(255,246,216,.7);background:rgba(217,193,133,.36);box-shadow:0 4px 18px rgba(0,0,0,.35)}
+  .mobileBtn{position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;width:66px;height:66px;padding:0;background:rgba(25,45,29,.78);border:2px solid rgba(238,210,142,.8);font-family:Georgia,"Times New Roman",serif;font-size:.72rem;line-height:1.05;box-shadow:0 5px 18px rgba(0,0,0,.36);backdrop-filter:blur(3px)}
+  #mFire{right:24px;bottom:42px;width:86px;height:86px;background:rgba(111,39,31,.86);font-size:.9rem}
+  #mReload{right:124px;bottom:40px}#mUse{right:34px;bottom:142px}#mVault{right:120px;bottom:124px}
+  #mWeapon{right:215px;bottom:34px}#mCraft{right:210px;bottom:114px}#mRock{right:306px;bottom:40px}#mRun{left:55px;bottom:184px;width:74px;height:50px;border-radius:22px}
+  #mRun.active{background:rgba(129,95,38,.9);border-color:#ffe19a}
+  #mobileHint{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font-size:.68rem;padding:4px 8px;border-radius:8px;background:rgba(0,0,0,.42);white-space:nowrap}
+  body.touchDevice #controls{display:none}body.touchDevice canvas{cursor:default}body.touchDevice #mobileControls{display:block}
+  body.touchDevice #clickPrompt{top:44%}body.touchDevice #clickPrompt p{margin-bottom:12px}
+  @media (max-width:1100px),(pointer:coarse){#status{min-width:230px;max-width:43vw}#objective{width:38vw}#inventory{max-width:54vw;min-width:0}#weapon{max-width:43vw;min-width:0}.hudBox{font-size:.72rem;padding:7px 9px}.bar{width:145px}#reloadTimer{top:59%;transform:translate(-50%,-50%) scale(.88)}}
+
+  @media(max-width:820px){#controls{display:none}#inventory{min-width:auto;max-width:55vw;font-size:.8rem}#weapon{font-size:.8rem}#status,#objective{font-size:.8rem}.bar{width:170px}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="1280" height="720"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="status" class="hudBox"></div>
+    <div id="objective" class="hudBox"></div>
+    <div id="inventory" class="hudBox"></div>
+    <div id="weapon" class="hudBox"></div>
+    <div id="message"></div>
+    <div id="bossBanner"></div>
+    <div id="reloadTimer"><span>RELOADING</span><strong id="reloadSeconds">0.0</strong><span id="reloadWeaponLabel">seconds remaining</span><div class="miniBar"><div id="reloadMiniFill" class="miniFill" style="width:0%"></div></div></div>
+    <div id="controls">W/S move · Mouse look · Click fire · Shift run · R reload · E gather · Q rock · Tab craft · V wall · F fort · C vault · 1 rank weapon · 2 rock · 3 melee · 4 axe · P pause</div>
+    <div id="clickPrompt" class="hidden"><h2>Enter the Battlefield</h2><p id="enterBattleText">Click here to activate first-person mouse look.</p><button id="enterBattle" class="primary">Enter First-Person Mode</button></div>
+    <div id="craftPanel" class="hidden">
+      <h2>Field Crafting</h2>
+      <p>Crafting pauses the battlefield.</p>
+      <button data-craft="stick">Sharpened stick — 1 branch + rock tool</button>
+      <button data-craft="wall">Wood wall — 3 wood</button>
+      <button data-craft="fort">Tiny fort — 8 wood</button>
+      <button id="closeCraft" class="danger">Return to Battle</button>
+    </div>
+    <div id="mobileControls" aria-label="Touch game controls">
+      <div id="lookZone" aria-label="Drag to aim"></div>
+      <div id="movePad" aria-label="Movement joystick"><div id="moveStick"></div></div>
+      <button id="mRun" class="mobileBtn">RUN</button>
+      <button id="mFire" class="mobileBtn">FIRE</button>
+      <button id="mReload" class="mobileBtn">RELOAD</button>
+      <button id="mUse" class="mobileBtn">USE</button>
+      <button id="mVault" class="mobileBtn">VAULT</button>
+      <button id="mWeapon" class="mobileBtn">WEAPON</button>
+      <button id="mCraft" class="mobileBtn">CRAFT</button>
+      <button id="mRock" class="mobileBtn">ROCK</button>
+      <div id="mobileHint">Left joystick moves · drag right side to aim</div>
+    </div>
+  </div>
+
+  <div id="mainMenu" class="screen">
+    <div class="panel">
+      <h1>Revolutionary Warfare</h1>
+      <div class="subtitle">First-person Revolutionary War battlefield game prototype with upgraded 3D-style visuals</div>
+      <div class="notice"><strong>Updated playable build:</strong> earn persistent coins for your own eliminations, buy cosmetic army uniforms, aim vertically for head/torso/limb hits, watch weapon-specific hand reload motions, and fight on a more detailed pseudo-3D battlefield bordered by dense trees instead of walls.</div>
+      <div class="menuGrid">
+        <button id="storyBtn" class="primary">Play Story Campaign</button>
+        <button id="freeBtn">Free Play <span id="freeLock">🔒</span></button>
+        <button id="uniformBtn">Uniform Store</button>
+        <button id="settingsBtn">Settings</button>
+        <button id="howBtn">How to Play</button>
+      </div>
+      <div class="row" style="margin-top:22px"><span class="badge">American rank: <strong id="menuRank">Private</strong></span><span class="badge">Best score: <strong id="bestScore">0</strong></span><span class="badge coin">Coins: <strong id="menuCoins">0</strong></span><span class="badge">Uniform: <strong id="menuUniform">Continental Blue</strong></span></div>
+      <p class="muted">The commander receives no boss-only bonuses. The challenge comes from the larger British force; every commander uses only the normal equipment and skill assigned to that rank.</p>
+    </div>
+  </div>
+
+  <div id="settingsScreen" class="screen hidden"><div class="panel">
+    <h2>Battle Settings</h2>
+    <div class="setting"><div><strong>Reload timing</strong><br><span class="muted">Fast Action is the approved default.</span></div><select id="reloadSetting"><option value="fast">Fast — Private infantry musket 5s</option><option value="balanced">Balanced — Private infantry musket 9s</option><option value="historical">Historical — Private infantry musket 16s</option></select></div>
+    <div class="setting"><div><strong>Difficulty</strong><br><span class="muted">Changes CPU accuracy, not health or damage.</span></div><select id="difficultySetting"><option value="recruit">Recruit</option><option value="regular">Regular</option><option value="veteran">Veteran</option></select></div>
+    <div class="setting"><div><strong>Mouse sensitivity</strong></div><select id="sensitivitySetting"><option value="0.0015">Low</option><option value="0.0023">Normal</option><option value="0.0032">High</option></select></div>
+    <div class="setting"><div><strong>Screen shake</strong></div><select id="shakeSetting"><option value="on">On</option><option value="off">Off</option></select></div>
+    <div class="notice">A large on-screen countdown appears during every reload. Rank and weapon change the final time. Reloading restarts from the beginning after running, vaulting/climbing, or taking a big hit.</div>
+    <button id="settingsBack">Save and Return</button>
+  </div></div>
+
+
+  <div id="uniformScreen" class="screen hidden"><div class="panel">
+    <div class="storeTop"><div><h2>Army Uniform Store</h2><div class="muted">Uniforms are cosmetic only and provide no combat advantage.</div></div><span class="badge coin">Coins: <strong id="storeCoins">0</strong></span></div>
+    <div id="skinGrid" class="skinGrid"></div>
+    <button id="uniformBack">Return</button>
+  </div></div>
+
+  <div id="howScreen" class="screen hidden"><div class="panel">
+    <h2>How to Play</h2>
+    <p>Click the battlefield to activate mouse look. Move the mouse left/right and up/down to aim. Use <kbd>W S</kbd> to move forward and backward and <kbd>A D</kbd> to strafe.</p>
+    <p>The firearm now points toward the crosshair. Shots can strike the head, torso, arms, or legs. Head shots deal more damage; limb shots deal less and briefly slow the target.</p>
+    <p>Your own British eliminations earn 10 coins. Coins remain saved and can purchase cosmetic uniforms from the main-menu Uniform Store.</p>
+    <p>Click to fire and press <kbd>R</kbd> to reload. A large reload timer and progress bar appear near the center of the screen. Running, vaulting and big hits interrupt the reload.</p>
+    <p>Press <kbd>1</kbd> for your rank weapon, <kbd>2</kbd> for a rock, <kbd>3</kbd> for your melee weapon, and <kbd>4</kbd> for the camp axe. Press <kbd>E</kbd> near supplies to gather them.</p>
+    <p>Press <kbd>Tab</kbd> for crafting, <kbd>V</kbd> to build a wall, <kbd>F</kbd> to build a tiny fort, and <kbd>C</kbd> to vault a low wall. CPU allies and enemies route around walls.</p>
+    <p>Higher ranks move faster, reload sooner, have less shot spread, and maintain effective fire at longer distances. Health remains 100 for every rank.</p>
+    <table class="loadoutTable"><thead><tr><th>Rank</th><th>American primary weapon</th><th>British equivalent</th></tr></thead><tbody>
+      <tr><td>Private</td><td>French Charleville musket</td><td>Long Land Pattern “Brown Bess”</td></tr>
+      <tr><td>Corporal</td><td>Committee of Safety musket</td><td>Short Land Pattern musket</td></tr>
+      <tr><td>Sergeant</td><td>Sergeant’s fusil</td><td>Sergeant’s fusil</td></tr>
+      <tr><td>Ensign</td><td>Officer’s fusil and smallsword</td><td>Officer’s fusil and smallsword</td></tr>
+      <tr><td>Lieutenant</td><td>Flintlock pistol and smallsword</td><td>Flintlock pistol and smallsword</td></tr>
+      <tr><td>Captain</td><td>Light officer’s fusil</td><td>Light officer’s fusil</td></tr>
+      <tr><td>Major</td><td>Cavalry carbine and sword</td><td>Cavalry carbine and sword</td></tr>
+      <tr><td>Lieutenant Colonel</td><td>Pennsylvania rifle and sword</td><td>Officer’s light fusil and sword</td></tr>
+      <tr><td>Colonel</td><td>Pair of flintlock pistols and sword</td><td>Pair of flintlock pistols and sword</td></tr>
+    </tbody></table>
+    <p class="sourceNote">Historical note: rank did not rigidly assign one unique firearm in every army. This game uses plausible period equipment to create distinct progression: line soldiers use muskets, sergeants and some officers use lighter fusils, cavalry roles use carbines and pistols, and officers carry swords.</p>
+    <p>Story mode contains five normal battlefield rounds. Round six is the commander battle: a larger British force versus you and four CPU-controlled American Privates. The commander has no boss-only stat bonus.</p>
+    <button id="howBack">Return</button>
+  </div></div>
+
+  <div id="pauseScreen" class="screen hidden"><div class="panel" style="max-width:520px;text-align:center"><h2>Battle Paused</h2><button id="resumeBtn">Resume</button><button id="restartBtn">Restart Campaign</button><button id="quitBtn" class="danger">Return to Main Menu</button></div></div>
+
+  <div id="endScreen" class="screen hidden"><div class="panel" style="max-width:680px;text-align:center"><h2 id="endTitle">Campaign Complete</h2><div id="endBody"></div><div class="row" style="justify-content:center"><button id="endReplay">Play Again</button><button id="endMenu" class="primary">Main Menu</button></div></div></div>
+</div>
+
+<script>
+'use strict';
+(() => {
+  const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height,TILE=64,MAP_W=24,MAP_H=18,FOV=Math.PI*70/180,PROJ=(W/2)/Math.tan(FOV/2),EYE=34;
+  const $=id=>document.getElementById(id);
+  const ranks=['Private','Corporal','Sergeant','Ensign','Lieutenant','Captain','Major','Lieutenant Colonel','Colonel'];
+  const reloadProfileScale={fast:1,balanced:1.8,historical:3.2};
+  const rankSkills={
+    'Private':{speed:1,reload:1,aim:1,range:1},'Corporal':{speed:1.025,reload:.97,aim:.94,range:1.03},
+    'Sergeant':{speed:1.05,reload:.94,aim:.88,range:1.06},'Ensign':{speed:1.075,reload:.91,aim:.82,range:1.09},
+    'Lieutenant':{speed:1.10,reload:.88,aim:.76,range:1.12},'Captain':{speed:1.125,reload:.85,aim:.70,range:1.15},
+    'Major':{speed:1.15,reload:.82,aim:.65,range:1.18},'Lieutenant Colonel':{speed:1.175,reload:.79,aim:.60,range:1.21},
+    'Colonel':{speed:1.20,reload:.76,aim:.55,range:1.24}
+  };
+  const weapons={
+    charleville:{name:'French Charleville Musket',kind:'musket',damage:40,baseReload:5,range:520,spread:.018,cooldown:.56,capacity:1,recoil:7,visual:'longMusket'},
+    brownBess:{name:'Long Land Pattern “Brown Bess”',kind:'musket',damage:40,baseReload:5.1,range:510,spread:.019,cooldown:.57,capacity:1,recoil:7,visual:'longMusket'},
+    committeeMusket:{name:'Committee of Safety Musket',kind:'musket',damage:39,baseReload:4.9,range:515,spread:.017,cooldown:.55,capacity:1,recoil:7,visual:'longMusket'},
+    shortLand:{name:'Short Land Pattern Musket',kind:'musket',damage:39,baseReload:4.8,range:500,spread:.016,cooldown:.54,capacity:1,recoil:7,visual:'shortMusket'},
+    sergeantFusil:{name:'Sergeant’s Fusil',kind:'fusil',damage:37,baseReload:4.55,range:490,spread:.015,cooldown:.50,capacity:1,recoil:6,visual:'fusil'},
+    officerFusil:{name:'Officer’s Fusil',kind:'fusil',damage:37,baseReload:4.35,range:515,spread:.014,cooldown:.48,capacity:1,recoil:6,visual:'fusil'},
+    lightFusil:{name:'Light Officer’s Fusil',kind:'fusil',damage:36,baseReload:4.15,range:530,spread:.013,cooldown:.46,capacity:1,recoil:5,visual:'fusil'},
+    pistol:{name:'Flintlock Pistol',kind:'pistol',damage:34,baseReload:3.5,range:285,spread:.025,cooldown:.38,capacity:1,recoil:5,visual:'pistol'},
+    carbine:{name:'Cavalry Carbine',kind:'carbine',damage:38,baseReload:4.45,range:440,spread:.017,cooldown:.48,capacity:1,recoil:6,visual:'carbine'},
+    officerRifle:{name:'Pennsylvania Rifle',kind:'rifle',damage:42,baseReload:6.8,range:720,spread:.008,cooldown:.64,capacity:1,recoil:7,visual:'rifle'},
+    pairPistols:{name:'Pair of Flintlock Pistols',kind:'pistol',damage:34,baseReload:4.2,range:310,spread:.020,cooldown:.34,capacity:2,recoil:5,visual:'pairPistols'}
+  };
+
+  const skins={
+    continental:{name:'Continental Blue',price:0,coat:'#284f7c',coatDark:'#17334f',facing:'#f0e4c4',cuff:'#c63b32',pants:'#eee3c9',description:'Classic blue Continental coat'},
+    rifleGreen:{name:'Rifle Green',price:40,coat:'#36543a',coatDark:'#203623',facing:'#b9a77b',cuff:'#273d29',pants:'#d4c7a6',description:'Frontier rifle-company colors'},
+    militiaBrown:{name:'Militia Brown',price:70,coat:'#765137',coatDark:'#4b301f',facing:'#d8c79c',cuff:'#5a3825',pants:'#b9a27c',description:'Practical local militia clothing'},
+    artilleryNavy:{name:'Artillery Navy',price:110,coat:'#1d3557',coatDark:'#101e34',facing:'#c7372e',cuff:'#c7372e',pants:'#e7dfc8',description:'Dark artillery-style coat'},
+    winterBuff:{name:'Winter Buff Coat',price:150,coat:'#8a7654',coatDark:'#594a34',facing:'#e2d1aa',cuff:'#6e5940',pants:'#c7b48e',description:'Heavy winter campaign look'}
+  };
+
+  const loadouts={
+    'Private':{american:'charleville',british:'brownBess'},'Corporal':{american:'committeeMusket',british:'shortLand'},
+    'Sergeant':{american:'sergeantFusil',british:'sergeantFusil'},'Ensign':{american:'officerFusil',british:'officerFusil'},
+    'Lieutenant':{american:'pistol',british:'pistol'},'Captain':{american:'lightFusil',british:'lightFusil'},
+    'Major':{american:'carbine',british:'carbine'},'Lieutenant Colonel':{american:'officerRifle',british:'officerFusil'},
+    'Colonel':{american:'pairPistols',british:'pairPistols'}
+  };
+  const save=JSON.parse(localStorage.getItem('revolutionaryWarfareFPS')||localStorage.getItem('libertyCrownFPS')||'{}');
+
+  const state={
+    mode:'menu',running:false,paused:false,story:false,free:false,round:1,boss:false,betweenRounds:false,roundDelay:0,
+    rankIndex:Number.isInteger(save.rankIndex)?save.rankIndex:0,storyComplete:!!save.storyComplete,bestScore:save.bestScore||0,coins:Number.isFinite(save.coins)?save.coins:0,ownedSkins:Array.isArray(save.ownedSkins)?save.ownedSkins:['continental'],equippedSkin:save.equippedSkin||'continental',
+    reloadProfile:save.reloadProfile||'fast',difficulty:save.difficulty||'regular',sensitivity:save.sensitivity||'0.0023',shake:save.shake||'on',
+    score:0,hitPoints:0,kills:0,totalKills:0,runCoins:0,time:0,messageTime:0,bannerTime:0,cameraShake:0,nextId:1,lastHitZone:''
+  };
+
+  const ui={main:$('mainMenu'),settings:$('settingsScreen'),uniform:$('uniformScreen'),how:$('howScreen'),pause:$('pauseScreen'),end:$('endScreen'),hud:$('hud'),craft:$('craftPanel'),click:$('clickPrompt')};
+  let map=[],player=null,soldiers=[],items=[],saplings=[],effects=[],zBuffer=new Float32Array(W),keys={},last=performance.now();
+  const isTouchDevice=matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0;
+  const touchState={moveId:null,lookId:null,moveX:0,moveY:0,run:false,lastLookX:0,lastLookY:0};
+  if(isTouchDevice){document.body.classList.add('touchDevice');$('enterBattleText').textContent='Tap below to enter the battlefield. Use the left joystick to move and drag the right side to aim.';$('enterBattle').textContent='Enter Touch Battlefield';}
+
+
+  const baseMap=[
+    '333333333333333333333333',
+    '300000000000000000000003',
+    '300001111000000000000003',
+    '300001001000011111000003',
+    '300001001000010001000003',
+    '300000001000010001000003',
+    '300000001000000001000003',
+    '300022220000000001000003',
+    '300000000000000000000003',
+    '300000011111000000000003',
+    '300000010001000222220003',
+    '300000010001000000000003',
+    '300000000001111110000003',
+    '300011100000000010000003',
+    '300010000000000010000003',
+    '300010000022220000000003',
+    '300000000000000000000003',
+    '333333333333333333333333'
+  ];
+
+  function persist(){localStorage.setItem('revolutionaryWarfareFPS',JSON.stringify({rankIndex:state.rankIndex,storyComplete:state.storyComplete,bestScore:state.bestScore,coins:state.coins,ownedSkins:state.ownedSkins,equippedSkin:state.equippedSkin,reloadProfile:state.reloadProfile,difficulty:state.difficulty,sensitivity:state.sensitivity,shake:state.shake}));}
+  function updateMenu(){$('menuRank').textContent=ranks[state.rankIndex];$('bestScore').textContent=state.bestScore;$('menuCoins').textContent=state.coins;$('menuUniform').textContent=(skins[state.equippedSkin]||skins.continental).name;$('storeCoins').textContent=state.coins;$('freeLock').textContent=state.storyComplete?'✓':'🔒';$('freeBtn').disabled=!state.storyComplete;$('reloadSetting').value=state.reloadProfile;$('difficultySetting').value=state.difficulty;$('sensitivitySetting').value=state.sensitivity;$('shakeSetting').value=state.shake;}
+  function showOnly(screen){[ui.main,ui.settings,ui.uniform,ui.how,ui.pause,ui.end].forEach(s=>s.classList.add('hidden'));if(screen)screen.classList.remove('hidden');}
+  function renderSkinStore(){const grid=$('skinGrid');grid.innerHTML='';for(const [id,skin] of Object.entries(skins)){const owned=state.ownedSkins.includes(id),equipped=state.equippedSkin===id,card=document.createElement('div');card.className='skinCard'+(equipped?' equipped':'');card.innerHTML=`<div class="uniformPreview" style="--coat:${skin.coat};--coatDark:${skin.coatDark};--facing:${skin.facing}"><div class="head"></div><div class="hat"></div><div class="coat"></div><div class="lapel"></div></div><h3>${skin.name}</h3><p class="muted">${skin.description}</p><button data-skin="${id}" ${!owned&&state.coins<skin.price?'disabled':''}>${equipped?'Equipped':owned?'Equip':`${skin.price} coins`}</button>`;grid.appendChild(card);}grid.querySelectorAll('[data-skin]').forEach(btn=>btn.onclick=()=>buyOrEquipSkin(btn.dataset.skin));$('storeCoins').textContent=state.coins;}
+  function buyOrEquipSkin(id){const skin=skins[id];if(!skin)return;if(!state.ownedSkins.includes(id)){if(state.coins<skin.price){return;}state.coins-=skin.price;state.ownedSkins.push(id);message(`${skin.name} purchased.`,1.5);}state.equippedSkin=id;persist();updateMenu();renderSkinStore();}
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));} function rand(a,b){return a+Math.random()*(b-a);} function normAng(a){while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return a;}
+  function cellX(x){return Math.floor(x/TILE)} function cellY(y){return Math.floor(y/TILE)} function keyCell(x,y){return `${x},${y}`}
+  function tileAtCell(x,y){if(x<0||y<0||x>=MAP_W||y>=MAP_H)return 1;return map[y][x]}
+  function tileAt(x,y){return tileAtCell(cellX(x),cellY(y))}
+  function isBlockedCell(x,y){return tileAtCell(x,y)!==0}
+  function distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+  function skillFor(rank){return rankSkills[rank]||rankSkills.Private;}
+  function loadoutFor(side,rank){return loadouts[rank]?.[side]||loadouts.Private[side];}
+  function weaponFor(id){return weapons[id]||weapons.charleville;}
+  function reloadTimeFor(rank,weaponId){return weaponFor(weaponId).baseReload*reloadProfileScale[state.reloadProfile]*skillFor(rank).reload;}
+  function meleeFor(rank){return ranks.indexOf(rank)>=3?'sword':'stick';}
+
+  function cloneMap(){map=baseMap.map(row=>row.split('').map(Number));}
+  
+function makePlayer(){
+  const rank=ranks[state.rankIndex],weaponId=loadoutFor('american',rank),weapon=weaponFor(weaponId);
+  return {x:2.5*TILE,y:8.5*TILE,angle:0,pitch:0,r:15,rank,health:100,maxHealth:100,weapon:weaponId,rankWeapon:weaponId,loadedShots:weapon.capacity,reloading:false,reloadElapsed:0,reloadDuration:reloadTimeFor(rank,weaponId),reloadRounds:0,fireCooldown:0,stagger:0,moving:false,vx:0,vy:0,moveBlend:0,stepCycle:0,viewBob:0,inv:{balls:34,powder:34,rocks:2,branches:1,wood:6,sticks:0},supplies:0};
+}
+
+function makeSoldier(side,x,y,rank='Private'){
+    const weaponId=loadoutFor(side,rank),weapon=weaponFor(weaponId);
+    return {id:state.nextId++,side,x,y,r:14,rank,weaponId,health:100,maxHealth:100,loadedShots:weapon.capacity,reloading:false,reloadRemaining:0,reloadDuration:reloadTimeFor(rank,weaponId),reloadRounds:0,fireCooldown:rand(.3,1.3),stagger:0,path:[],pathTimer:0,target:null,walkPhase:rand(0,Math.PI*2),moving:false,dead:false};
+  }
+
+  function addItem(type,cx,cy,amount=1){items.push({type,x:(cx+.5)*TILE,y:(cy+.5)*TILE,amount,phase:rand(0,6.2)});}
+  function addSapling(cx,cy){saplings.push({x:(cx+.5)*TILE,y:(cy+.5)*TILE,health:50,dead:false});}
+
+  function resetWorld(mode){
+    cloneMap();state.mode=mode;state.story=mode==='story';state.free=mode==='free';state.running=true;state.paused=true;state.round=1;state.boss=false;state.betweenRounds=false;state.roundDelay=0;state.score=0;state.hitPoints=0;state.kills=0;state.totalKills=0;state.runCoins=0;state.lastHitZone='';state.time=0;state.nextId=1;
+    player=makePlayer();soldiers=[];items=[];saplings=[];effects=[];
+    [[4,3],[9,5],[15,2],[19,7],[7,14],[14,14],[20,15]].forEach(p=>addSapling(...p));
+    [['rock',3,4,2],['branch',4,14,1],['wood',8,8,3],['ball',6,2,8],['powder',7,2,8],['ball',13,9,8],['powder',14,9,8],['wood',20,12,4],['rock',18,4,2]].forEach(v=>addItem(...v));
+    startRound(1);
+    showOnly(null);ui.hud.classList.remove('hidden');ui.craft.classList.add('hidden');ui.click.classList.remove('hidden');
+    message('Five battlefield rounds stand between you and the commander battle.',4);last=performance.now();
+  }
+
+  const enemySpawns=[[21,2],[21,5],[21,8],[21,11],[21,15],[18,2],[18,15],[15,6],[15,15],[12,2],[11,15],[20,9]];
+  function validSpawn(cx,cy){if(isBlockedCell(cx,cy))return false;const x=(cx+.5)*TILE,y=(cy+.5)*TILE;return Math.hypot(x-player.x,y-player.y)>420;}
+  function spawnAt(side,cx,cy,rank='Private'){if(!validSpawn(cx,cy)&&side==='british'){for(const p of enemySpawns){if(validSpawn(p[0],p[1])){cx=p[0];cy=p[1];break;}}}const s=makeSoldier(side,(cx+.5)*TILE,(cy+.5)*TILE,rank);soldiers.push(s);return s;}
+  function startRound(n){
+    state.round=n;state.boss=n%6===0;state.betweenRounds=false;state.kills=0;soldiers=soldiers.filter(s=>!s.dead&&s.side==='american');
+    if(state.boss){
+      soldiers=[];
+      const allyCells=[[3,7],[3,9],[4,8],[4,10]];allyCells.forEach(p=>spawnAt('american',p[0],p[1],'Private'));
+      const count=10+(state.free?Math.floor(n/6)-1:0);
+      for(let i=0;i<count;i++){const p=enemySpawns[i%enemySpawns.length];spawnAt('british',p[0],p[1],i===0?'Colonel':'Private');}
+      banner('COMMANDER BATTLE — Larger enemy force. The commander receives no boss-only bonus and uses the standard Colonel loadout.',5);
+      message('Four CPU-controlled American Privates have joined your side.',4);
+    }else{
+      soldiers=soldiers.filter(s=>s.side!=='american');
+      const count=Math.min(2+n,8);
+      for(let i=0;i<count;i++){const p=enemySpawns[(i+n*2)%enemySpawns.length];spawnAt('british',p[0],p[1],i===count-1&&n>=4?'Sergeant':'Private');}
+      message(`Battlefield Round ${n}: defeat the British line.`,3);
+    }
+  }
+
+  function nextRound(){
+    player.health=100;player.inv.balls+=8;player.inv.powder+=8;player.weapon=player.rankWeapon;player.loadedShots=weaponFor(player.rankWeapon).capacity;player.reloading=false;player.reloadElapsed=0;state.score+=150;
+    if(state.story&&state.boss){endMission(true);return;}
+    startRound(state.round+1);
+  }
+
+  function message(text,d=2){$('message').textContent=text;$('message').style.opacity='1';state.messageTime=d;}
+  function banner(text,d=4){$('bossBanner').textContent=text;$('bossBanner').style.opacity='1';state.bannerTime=d;}
+  function cancelReload(reason){if(!player.reloading)return;player.reloading=false;player.reloadElapsed=0;message(`Reload interrupted: ${reason}. Start again.`,1.7);}
+  function beginReload(){
+    if(!state.running||state.paused||player.reloading)return;
+    const weapon=weapons[player.weapon];
+    if(!weapon){message('Select your rank firearm with 1.',1.3);return;}
+    if(player.loadedShots>=weapon.capacity){message(`${weapon.name} is already loaded.`,1.2);return;}
+    const need=weapon.capacity-player.loadedShots;
+    if(player.inv.balls<need||player.inv.powder<need){message(`You need ${need} ball${need>1?'s':''} and ${need} powder charge${need>1?'s':''}.`,1.8);return;}
+    player.reloading=true;player.reloadElapsed=0;player.reloadRounds=need;player.reloadDuration=reloadTimeFor(player.rank,player.weapon);
+    message(`Reloading ${weapon.name} — ${player.reloadDuration.toFixed(1)} seconds.`,1.5);
+  }
+
+  function completeReload(){
+    player.reloading=false;player.reloadElapsed=0;player.loadedShots+=player.reloadRounds;player.inv.balls-=player.reloadRounds;player.inv.powder-=player.reloadRounds;player.reloadRounds=0;sound('reload');
+  }
+
+  function circleWallCollision(x,y,r){
+    const minX=cellX(x-r),maxX=cellX(x+r),minY=cellY(y-r),maxY=cellY(y+r);
+    for(let cy=minY;cy<=maxY;cy++)for(let cx=minX;cx<=maxX;cx++){if(!isBlockedCell(cx,cy))continue;const rx=cx*TILE,ry=cy*TILE,nx=clamp(x,rx,rx+TILE),ny=clamp(y,ry,ry+TILE);if(Math.hypot(x-nx,y-ny)<r)return true;}
+    return false;
+  }
+  function moveEntity(ent,dx,dy){let nx=ent.x+dx,ny=ent.y;if(!circleWallCollision(nx,ny,ent.r))ent.x=nx;nx=ent.x;ny=ent.y+dy;if(!circleWallCollision(nx,ny,ent.r))ent.y=ny;}
+
+  function update(dt){
+    if(!state.running)return;
+    if(state.messageTime>0){state.messageTime-=dt;if(state.messageTime<=0)$('message').style.opacity='0';}
+    if(state.bannerTime>0){state.bannerTime-=dt;if(state.bannerTime<=0)$('bossBanner').style.opacity='0';}
+    if(state.paused){updateHUD();return;}
+    state.time+=dt;player.fireCooldown=Math.max(0,player.fireCooldown-dt);player.stagger=Math.max(0,player.stagger-dt);player.moving=false;
+
+    let forward=(keys.w?1:0)-(keys.s?1:0)-touchState.moveY,strafe=(keys.d?1:0)-(keys.a?1:0)+touchState.moveX;
+    const wantsMove=Math.hypot(forward,strafe)>.08,running=(!!keys.shift||touchState.run)&&wantsMove;
+    if(wantsMove){
+      const len=Math.max(1,Math.hypot(forward,strafe));forward/=len;strafe/=len;
+    }
+    if(running&&player.reloading)cancelReload('running');
+    const rankSpeed=skillFor(player.rank).speed,staggerScale=(player.stagger>0?.38:1),targetSpeed=(wantsMove?(running?205:125):0)*rankSpeed*staggerScale,ca=Math.cos(player.angle),sa=Math.sin(player.angle);
+    const targetVx=wantsMove?(ca*forward-sa*strafe)*targetSpeed:0,targetVy=wantsMove?(sa*forward+ca*strafe)*targetSpeed:0;
+    const accel=wantsMove?Math.min(1,dt*11):Math.min(1,dt*7),drag=wantsMove?.96:.84;
+    player.vx=(player.vx+(targetVx-player.vx)*accel)*drag;
+    player.vy=(player.vy+(targetVy-player.vy)*accel)*drag;
+    moveEntity(player,player.vx*dt,player.vy*dt);
+    const moveSpeed=Math.hypot(player.vx,player.vy);
+    player.moving=moveSpeed>12;
+    const blendTarget=clamp(moveSpeed/230,0,1);
+    player.moveBlend+= (blendTarget-player.moveBlend)*Math.min(1,dt*7);
+    player.stepCycle += dt*(player.moving?((running?12.5:8.2)*(0.35+blendTarget)):1.1);
+    player.viewBob=Math.sin(player.stepCycle)*player.moveBlend;
+    if(player.reloading){player.reloadElapsed+=dt;if(player.reloadElapsed>=player.reloadDuration)completeReload();}
+
+    updateAI(dt);updateEffects(dt);
+    const enemiesAlive=soldiers.filter(s=>!s.dead&&s.side==='british').length;
+    if(enemiesAlive===0&&!state.betweenRounds){state.betweenRounds=true;state.roundDelay=3;message(state.boss?'Commander force defeated.':'Round secured. Resupplying for the next battle...',3);}
+    if(state.betweenRounds){state.roundDelay-=dt;if(state.roundDelay<=0)nextRound();}
+    updateHUD();
+  }
+
+  function availableTargets(side){
+    if(side==='british')return [player,...soldiers.filter(s=>!s.dead&&s.side==='american')].filter(t=>t.health>0);
+    return soldiers.filter(s=>!s.dead&&s.side==='british');
+  }
+  function nearestTarget(s){let best=null,bd=1e9;for(const t of availableTargets(s.side)){const d=distance(s,t);if(d<bd){bd=d;best=t;}}return best;}
+  function clearLine(a,b){
+    const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),steps=Math.ceil(d/12);for(let i=1;i<steps;i++){const t=i/steps;if(tileAt(a.x+dx*t,a.y+dy*t)!==0)return false;}return true;
+  }
+
+  function findPath(sx,sy,gx,gy){
+    sx=clamp(sx,0,MAP_W-1);sy=clamp(sy,0,MAP_H-1);gx=clamp(gx,0,MAP_W-1);gy=clamp(gy,0,MAP_H-1);
+    if(sx===gx&&sy===gy)return [];
+    const open=[{x:sx,y:sy,g:0,f:Math.abs(gx-sx)+Math.abs(gy-sy)}],came=new Map(),gScore=new Map([[keyCell(sx,sy),0]]),closed=new Set();
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+    while(open.length){
+      let bi=0;for(let i=1;i<open.length;i++)if(open[i].f<open[bi].f)bi=i;const cur=open.splice(bi,1)[0],ck=keyCell(cur.x,cur.y);if(closed.has(ck))continue;closed.add(ck);
+      if(cur.x===gx&&cur.y===gy){const path=[];let k=ck;while(came.has(k)){const [x,y]=k.split(',').map(Number);path.unshift({x:(x+.5)*TILE,y:(y+.5)*TILE});k=came.get(k);}return path;}
+      for(const [dx,dy] of dirs){const nx=cur.x+dx,ny=cur.y+dy,nk=keyCell(nx,ny);if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H||isBlockedCell(nx,ny)||closed.has(nk))continue;const ng=cur.g+1;if(ng<(gScore.get(nk)??1e9)){gScore.set(nk,ng);came.set(nk,ck);open.push({x:nx,y:ny,g:ng,f:ng+Math.abs(gx-nx)+Math.abs(gy-ny)});}}
+    }
+    return [];
+  }
+
+  function updateAI(dt){
+    for(const s of soldiers){
+      if(s.dead)continue;s.fireCooldown-=dt;s.stagger=Math.max(0,s.stagger-dt);s.pathTimer-=dt;s.moving=false;
+      const target=nearestTarget(s);s.target=target;if(!target)continue;const d=distance(s,target),los=clearLine(s,target),weapon=weaponFor(s.weaponId),skill=skillFor(s.rank),effectiveRange=weapon.range*skill.range;
+      if(s.loadedShots<=0){
+        if(!s.reloading){s.reloading=true;s.reloadDuration=reloadTimeFor(s.rank,s.weaponId)*rand(.98,1.08);s.reloadRemaining=s.reloadDuration;s.reloadRounds=weapon.capacity;}
+        s.reloadRemaining-=dt;if(s.reloadRemaining<=0){s.loadedShots=weapon.capacity;s.reloading=false;s.reloadRounds=0;}
+      }
+      if(los&&d<effectiveRange&&s.loadedShots>0&&s.fireCooldown<=0){aiFire(s,target,d);}
+      const shouldMove=!los||d>Math.min(effectiveRange*.66,360);
+      if(shouldMove){
+        if(s.pathTimer<=0||s.path.length===0){s.path=findPath(cellX(s.x),cellY(s.y),cellX(target.x),cellY(target.y));s.pathTimer=rand(.55,.9);}
+        if(s.path.length){const p=s.path[0],dx=p.x-s.x,dy=p.y-s.y,dd=Math.hypot(dx,dy);if(dd<10)s.path.shift();else{const sp=78*skill.speed*(s.stagger>0?.35:1);moveEntity(s,dx/dd*sp*dt,dy/dd*sp*dt);s.moving=true;s.walkPhase+=dt*6*skill.speed;}}
+      }else if(d<105){
+        const dx=(s.x-target.x)/Math.max(d,1),dy=(s.y-target.y)/Math.max(d,1);moveEntity(s,dx*45*dt,dy*45*dt);s.moving=true;s.walkPhase+=dt*5;
+      }
+    }
+    soldiers=soldiers.filter(s=>!s.dead||((s.fade=(s.fade??1)-dt)>0));
+  }
+
+  function aiFire(s,target,d){
+    const weapon=weaponFor(s.weaponId),skill=skillFor(s.rank),effectiveRange=weapon.range*skill.range;
+    s.loadedShots--;s.fireCooldown=weapon.cooldown;effects.push({type:'smoke',x:s.x,y:s.y,t:1});sound(s.side==='british'?'enemyShot':'allyShot');
+    if(s.loadedShots<=0){s.reloading=true;s.reloadDuration=reloadTimeFor(s.rank,s.weaponId)*rand(.98,1.08);s.reloadRemaining=s.reloadDuration;s.reloadRounds=weapon.capacity;}
+    const difficulty=state.difficulty==='recruit'?.56:state.difficulty==='veteran'?.78:.67;
+    const weaponAccuracy=clamp(.72-weapon.spread*8,.45,.76),rangeFalloff=clamp(1-d/(effectiveRange*1.55),.35,1),rankAccuracy=clamp(1.18-skill.aim*.28,.88,1.06);
+    const chance=difficulty*weaponAccuracy*rangeFalloff*rankAccuracy;
+    if(Math.random()<chance){damageEntity(target,weapon.damage,s.side==='british'?'britishAI':'americanAI','torso');}
+  }
+
+  function fireWeapon(){
+    if(!state.running||state.paused||player.fireCooldown>0||player.stagger>0)return;
+    if(weapons[player.weapon])fireFirearm();else if(player.weapon==='rock')throwRock();else melee(player.weapon);
+  }
+
+  function fireFirearm(){
+    const weapon=weaponFor(player.weapon),skill=skillFor(player.rank);
+    if(player.reloading){message('Finish reloading first.',1);return;}if(player.loadedShots<=0){message(`${weapon.name} is empty. Press R.`,1.2);return;}
+    player.loadedShots--;player.fireCooldown=weapon.cooldown;effects.push({type:'muzzle',t:.18});state.cameraShake=state.shake==='on'?weapon.recoil:0;sound('shot');
+    const spread=weapon.spread*skill.aim,shotAngle=player.angle+rand(-spread,spread),shotPitch=player.pitch+rand(-spread*.78,spread*.78),effectiveRange=weapon.range*skill.range;
+    const hit=targetInAim(effectiveRange,'british',shotAngle,shotPitch);if(hit){const mult=hit.zone==='head'?1.55:hit.zone==='limb'?.72:1;damageEntity(hit.target,Math.round(weapon.damage*mult),'player',hit.zone);effects.push({type:'hitMarker',t:.24,zone:hit.zone});state.lastHitZone=hit.zone;state.hitPoints++;state.score+=1;effects.push({type:'hitPoint',t:.8,text:'+1 HIT'});message(`${hit.zone==='head'?'Head':hit.zone==='limb'?'Limb':'Torso'} hit! +1 point`,.75);}
+  }
+
+  function throwRock(){if(player.inv.rocks<1){message('No rocks. Gather one first.',1.4);return;}if(player.fireCooldown>0)return;player.inv.rocks--;player.fireCooldown=.6;sound('throw');const hit=targetInAim(190,'british',player.angle,player.pitch,.22);if(hit)damageEntity(hit.target,12,'player',hit.zone);}
+  function melee(type){
+    if(type==='stick'&&player.inv.sticks<1){message('Craft a sharpened stick first.',1.4);return;}player.fireCooldown=.55;let best=null,bd=70;
+    for(const s of soldiers){if(s.dead||s.side!=='british')continue;const d=distance(player,s),a=Math.abs(normAng(Math.atan2(s.y-player.y,s.x-player.x)-player.angle));if(d<bd&&a<.65){bd=d;best=s;}}
+    if(best){damageEntity(best,type==='axe'?25:20,'player','limb');sound('hit');return;}
+    if(type==='axe'){for(const sap of saplings){if(sap.dead)continue;const d=distance(player,sap),a=Math.abs(normAng(Math.atan2(sap.y-player.y,sap.x-player.x)-player.angle));if(d<75&&a<.7){sap.health-=25;sound('hit');if(sap.health<=0){sap.dead=true;player.inv.wood+=3;state.score+=20;message('Sapling cut: +3 wood.',1.4);}return;}}}
+  }
+  function targetInAim(maxRange,side,aimAngle=player.angle,aimPitch=player.pitch,extraWidth=0){let best=null,bd=maxRange;for(const s of soldiers){if(s.dead||s.side!==side)continue;const d=distance(player,s);if(d>bd||!clearLine(player,s))continue;const yaw=normAng(Math.atan2(s.y-player.y,s.x-player.x)-aimAngle),lateral=Math.tan(yaw)*d,bodyHalf=11+extraWidth*d;if(Math.abs(lateral)>bodyHalf)continue;const shotZ=EYE+Math.tan(aimPitch)*d;if(shotZ<0||shotZ>62)continue;let zone='torso';if(shotZ>=49&&Math.abs(lateral)<8)zone='head';else if(shotZ<22||Math.abs(lateral)>6.5)zone='limb';if(d<bd){bd=d;best={target:s,zone,shotZ,lateral};}}return best;}
+
+  function damageEntity(ent,damage,source,zone='torso'){
+    if(ent.dead||ent.health<=0)return;ent.health-=damage;ent.stagger=damage>=30?.38:.08;if(zone==='limb')ent.stagger=Math.max(ent.stagger,.55);effects.push({type:'impact',x:ent.x,y:ent.y,t:.35,zone});
+    if(ent===player){if(damage>=30)cancelReload('a big hit');state.cameraShake=state.shake==='on'?10:0;effects.push({type:'damageFlash',t:.35});}
+    else if(damage>=30&&ent.reloading){ent.loadedShots=0;ent.reloading=true;ent.reloadDuration=reloadTimeFor(ent.rank,ent.weaponId);ent.reloadRemaining=ent.reloadDuration;}
+    if(ent.health<=0){ent.dead=true;if(ent===player){endMission(false);}else{if(ent.side==='british'){state.kills++;state.totalKills++;state.score+=100;dropSupplies(ent);if(source==='player'){state.coins+=10;state.runCoins+=10;persist();effects.push({type:'coin',t:1.25,text:'+10 coins'});message('Elimination: +10 coins',1.1);}}else message('An allied Private was incapacitated.',1.3);}}
+  }
+  function dropSupplies(s){if(Math.random()<.75)items.push({type:'ball',x:s.x+rand(-12,12),y:s.y+rand(-12,12),amount:2,phase:0});if(Math.random()<.75)items.push({type:'powder',x:s.x+rand(-12,12),y:s.y+rand(-12,12),amount:2,phase:1});}
+
+  function interact(){
+    if(!state.running||state.paused)return;let best=null,bd=82;
+    for(const it of items){const d=distance(player,it);if(d<bd){bd=d;best=it;}}
+    if(!best){message('No supplies close enough to gather.',1.2);return;}const a=best.amount||1;player.inv[best.type==='ball'?'balls':best.type==='powder'?'powder':best.type==='rock'?'rocks':best.type==='branch'?'branches':'wood']+=a;player.supplies+=a;state.score+=a*5;message(`Gathered ${a} ${best.type}${a>1?'s':''}.`,1.2);items.splice(items.indexOf(best),1);sound('pickup');
+  }
+  function craft(type){
+    if(type==='stick'){if(player.inv.branches>=1&&player.inv.rocks>=1){player.inv.branches--;player.inv.sticks++;message('Sharpened stick crafted.',1.3);}else message('Need 1 branch and a rock tool.',1.3);}
+    if(type==='wall')buildWall();if(type==='fort')buildFort();updateHUD();
+  }
+  function frontCell(steps=1){return {x:cellX(player.x+Math.cos(player.angle)*TILE*steps),y:cellY(player.y+Math.sin(player.angle)*TILE*steps)};}
+  function buildWall(){if(player.inv.wood<3){message('Need 3 wood.',1.2);return;}const c=frontCell(1);if(isBlockedCell(c.x,c.y)){message('Cannot build there.',1.2);return;}map[c.y][c.x]=2;player.inv.wood-=3;state.score+=25;soldiers.forEach(s=>s.pathTimer=0);message('Low wooden wall built. CPU soldiers will route around it.',1.6);sound('build');}
+  function buildFort(){if(player.inv.wood<8){message('Need 8 wood.',1.2);return;}const cx=cellX(player.x),cy=cellY(player.y),cells=[[cx-1,cy-1],[cx,cy-1],[cx+1,cy-1],[cx-1,cy+1],[cx+1,cy+1]];let placed=0;for(const [x,y] of cells){if(x>0&&y>0&&x<MAP_W-1&&y<MAP_H-1&&!isBlockedCell(x,y)){map[y][x]=2;placed++;}}if(!placed){message('No room for a fort.',1.2);return;}player.inv.wood-=8;state.score+=80;soldiers.forEach(s=>s.pathTimer=0);message('Tiny field fort built with an open entrance.',1.6);sound('build');}
+  function vault(){if(!state.running||state.paused)return;const c=frontCell(.7),t=tileAtCell(c.x,c.y);if(t!==2){message('Face a low wooden wall to vault.',1.2);return;}const nx=player.x+Math.cos(player.angle)*TILE*1.45,ny=player.y+Math.sin(player.angle)*TILE*1.45;if(circleWallCollision(nx,ny,player.r)){message('The landing area is blocked.',1.2);return;}cancelReload('vaulting');player.x=nx;player.y=ny;sound('climb');}
+
+  function toggleCraft(){if(!state.running)return;const opening=ui.craft.classList.contains('hidden');ui.craft.classList.toggle('hidden');state.paused=opening;if(opening&&document.pointerLockElement)document.exitPointerLock();else if(!opening)showClickPrompt();}
+  function pauseGame(){if(!state.running)return;state.paused=true;if(document.pointerLockElement)document.exitPointerLock();showOnly(ui.pause);ui.click.classList.add('hidden');}
+  function resumeGame(){showOnly(null);if(isTouchDevice){ui.click.classList.add('hidden');state.paused=false;}else{ui.click.classList.remove('hidden');state.paused=true;}}
+  function showClickPrompt(){if(state.running){state.paused=true;ui.click.classList.remove('hidden');}}
+  function enterBattle(){if(!state.running)return;if(!isTouchDevice)canvas.requestPointerLock?.();ui.click.classList.add('hidden');state.paused=false;showOnly(null);}
+
+  function endMission(win){
+    if(!state.running)return;state.running=false;state.paused=true;if(document.pointerLockElement)document.exitPointerLock();ui.hud.classList.add('hidden');showOnly(ui.end);
+    if(win){const old=state.rankIndex;if(state.story){state.storyComplete=true;state.rankIndex=Math.min(state.rankIndex+1,ranks.length-1);}state.bestScore=Math.max(state.bestScore,state.score);persist();$('endTitle').textContent=state.story?'Commander Battle Won':'Free-Play Campaign Complete';$('endBody').innerHTML=`<p>You survived five battlefield rounds and defeated the larger commander force.</p><p><strong>Score:</strong> ${state.score} &nbsp; <strong>Successful shots:</strong> ${state.hitPoints} &nbsp; <strong>British soldiers defeated:</strong> ${state.totalKills} &nbsp; <strong>Coins earned:</strong> ${state.runCoins} &nbsp; <strong>Supplies gathered:</strong> ${player.supplies}</p>${state.story?`<p class="accent">Promotion: ${ranks[old]} → ${ranks[state.rankIndex]}</p><p>Free Play is unlocked.</p>`:''}`;}
+    else{$('endTitle').textContent='The Line Has Broken';$('endBody').innerHTML='<p>Your soldier was incapacitated. Every rank has the same 100 health; equipment and training affect movement, reload, aim and effective range.</p><p>Use cover, let walls shape the CPU routes, and gather dropped ammunition.</p>';}
+  }
+
+  function updateHUD(){if(!player)return;const allies=soldiers.filter(s=>!s.dead&&s.side==='american').length,enemies=soldiers.filter(s=>!s.dead&&s.side==='british').length,skill=skillFor(player.rank),rankWeapon=weaponFor(player.rankWeapon),activeWeapon=weapons[player.weapon];
+    $('status').innerHTML=`<strong>${player.rank}</strong> · Continental Army<br><span class="muted">${rankWeapon.name}</span><br>Health<div class="bar"><div class="fill" style="width:${Math.max(0,player.health)}%"></div></div><span class="muted">Speed +${Math.round((skill.speed-1)*100)}% · Reload ${Math.round((1-skill.reload)*100)}% quicker · Range +${Math.round((skill.range-1)*100)}%</span>${state.boss?`<br><span class="accent">CPU Private allies: ${allies}</span>`:''}`;
+    $('objective').innerHTML=state.boss?`<strong>COMMANDER BATTLE</strong><br>British soldiers remaining: ${enemies}<br><span class="muted">Larger army; no boss-only bonuses</span>`:`<strong>Battlefield Round ${((state.round-1)%6)+1} of 5</strong><br>British soldiers remaining: ${enemies}<br><span class="muted">The commander battle begins after round five</span>`;
+    $('inventory').innerHTML=`<strong>Field Inventory</strong> · <span class="coin">Coins: ${state.coins}</span><br>Musket balls: ${player.inv.balls} · Powder charges: ${player.inv.powder} · Rocks: ${player.inv.rocks}<br>Branches: ${player.inv.branches} · Wood: ${player.inv.wood} · Sharpened sticks: ${player.inv.sticks}`;
+    const utilityNames={rock:'Thrown Rock',stick:'Sharpened Stick',sword:'Officer’s Smallsword',axe:'Camp Axe'},name=activeWeapon?activeWeapon.name:utilityNames[player.weapon],capacity=activeWeapon?.capacity||0,rd=player.reloading?player.reloadElapsed/player.reloadDuration*100:0;
+    $('weapon').innerHTML=`<strong>${name}</strong><br>${activeWeapon?(player.loadedShots>0?`${player.loadedShots}/${capacity} loaded`:player.reloading?`Reloading ${(player.reloadDuration-player.reloadElapsed).toFixed(1)}s`:'Empty'):'Ready'}${activeWeapon?`<br><span class="muted">Effective range ${Math.round(activeWeapon.range*skill.range)} · Damage ${activeWeapon.damage}</span>`:''}<div class="bar" style="margin-left:auto"><div class="fill reload" style="width:${rd}%"></div></div><span class="muted">Score ${state.score} · Hit points ${state.hitPoints}${state.lastHitZone?` · Last hit ${state.lastHitZone}`:''}</span>`;
+    const timer=$('reloadTimer');if(player.reloading){timer.classList.add('active');$('reloadSeconds').textContent=Math.max(0,player.reloadDuration-player.reloadElapsed).toFixed(1);$('reloadWeaponLabel').textContent=`seconds · ${activeWeapon?.name||'Firearm'}`;$('reloadMiniFill').style.width=`${rd}%`;}else timer.classList.remove('active');
+  }
+
+  function castRay(angle){
+    const posX=player.x/TILE,posY=player.y/TILE,dirX=Math.cos(angle),dirY=Math.sin(angle);let mapX=Math.floor(posX),mapY=Math.floor(posY);
+    const deltaX=Math.abs(1/(dirX||1e-8)),deltaY=Math.abs(1/(dirY||1e-8));let stepX,stepY,sideX,sideY;
+    if(dirX<0){stepX=-1;sideX=(posX-mapX)*deltaX;}else{stepX=1;sideX=(mapX+1-posX)*deltaX;}if(dirY<0){stepY=-1;sideY=(posY-mapY)*deltaY;}else{stepY=1;sideY=(mapY+1-posY)*deltaY;}
+    let tile=0,side=0,guard=0;while(tile===0&&guard++<80){if(sideX<sideY){sideX+=deltaX;mapX+=stepX;side=0;}else{sideY+=deltaY;mapY+=stepY;side=1;}tile=tileAtCell(mapX,mapY);}
+    const perp=side===0?(mapX-posX+(1-stepX)/2)/(dirX||1e-8):(mapY-posY+(1-stepY)/2)/(dirY||1e-8);return {dist:Math.max(.001,perp*TILE),tile,side,mapX,mapY};
+  }
+
+  function draw(){
+    const shake=state.cameraShake?rand(-state.cameraShake,state.cameraShake):0;ctx.save();ctx.translate(shake*.35,shake*.2);drawSkyFloor();if(player&&state.mode!=='menu'){drawWalls();drawWorldSprites();drawWeaponView();drawCrosshair();drawScreenEffects();}else drawMenuBackdrop();ctx.restore();
+  }
+  function horizon(){return player&&state.mode!=='menu'?H/2+player.pitch*H*.62:H/2;}
+  function drawSkyFloor(){
+    const hy=horizon(),sky=ctx.createLinearGradient(0,0,0,Math.max(hy,1));sky.addColorStop(0,'#4a7398');sky.addColorStop(.58,'#9fb9ce');sky.addColorStop(1,'#d8d2ae');ctx.fillStyle=sky;ctx.fillRect(0,0,W,Math.max(0,hy));
+    ctx.fillStyle='rgba(255,238,174,.78)';ctx.beginPath();ctx.arc(W*.82,hy-H*.35,42,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(238,241,235,.5)';for(let i=0;i<5;i++){const x=(i*287+state.time*2)%1500-100,y=hy-H*.31+(i%3)*38;ctx.beginPath();ctx.ellipse(x,y,72,20,0,0,Math.PI*2);ctx.ellipse(x+52,y+4,58,17,0,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='#53694a';ctx.beginPath();ctx.moveTo(0,hy+8);for(let x=0;x<=W;x+=80)ctx.lineTo(x,hy-48-Math.sin(x*.011)*24);ctx.lineTo(W,hy+24);ctx.lineTo(0,hy+24);ctx.fill();
+    for(let i=0;i<34;i++){const x=i*(W/33),y=hy-25-(i%3)*7;ctx.fillStyle=i%2?'#24482d':'#315b34';ctx.beginPath();ctx.arc(x,y,18+(i%4)*4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#49321f';ctx.fillRect(x-3,hy-12,6,25);}
+    const ground=ctx.createLinearGradient(0,hy,0,H);ground.addColorStop(0,'#7f8d5b');ground.addColorStop(.48,'#52683f');ground.addColorStop(1,'#243924');ctx.fillStyle=ground;ctx.fillRect(0,hy,W,H-hy);
+    ctx.fillStyle='rgba(139,112,70,.36)';ctx.beginPath();ctx.moveTo(W*.39,H);ctx.lineTo(W*.488,hy);ctx.lineTo(W*.525,hy);ctx.lineTo(W*.72,H);ctx.closePath();ctx.fill();
+    for(let y=hy+8;y<H;y+=18){const depth=(y-hy)/Math.max(1,H-hy);ctx.strokeStyle=`rgba(233,221,175,${.018+depth*.045})`;ctx.lineWidth=1+depth*2;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    for(let i=0;i<76;i++){const seed=(i*97)%W,y=hy+10+((i*53)%Math.max(20,H-hy-10)),spread=(y-hy)/Math.max(1,H-hy),x=(seed+Math.sin(state.time*.15+i)*8)%W;ctx.strokeStyle=`rgba(30,62,27,${.18+spread*.54})`;ctx.lineWidth=1+spread*1.8;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-3*spread,y-8*spread);ctx.moveTo(x,y);ctx.lineTo(x+4*spread,y-9*spread);ctx.stroke();}
+  }
+
+  function drawMenuBackdrop(){
+    drawSkyFloor();for(let i=0;i<9;i++){const x=80+i*150,y=H*.5+95+(i%2)*48;drawHumanShape(x,y,102,i%3===0?'british':'american',i===4?'Sergeant':'Private',1,false,{walkPhase:state.time*2+i,moving:true,weaponId:i%3===0?'brownBess':'charleville'});}ctx.fillStyle='rgba(20,30,20,.32)';ctx.fillRect(0,0,W,H);
+  }
+
+  function drawWalls(){
+    const hy=horizon();for(let x=0;x<W;x+=2){const rayAngle=player.angle-FOV/2+(x/W)*FOV,r=castRay(rayAngle),corrected=r.dist*Math.cos(rayAngle-player.angle);for(let i=x;i<x+2&&i<W;i++)zBuffer[i]=corrected;
+      const fullH=PROJ*TILE/corrected,factor=r.tile===2?.55:r.tile===3?1.35:1,wallH=fullH*factor,bottom=hy+fullH/2,top=bottom-wallH,shade=clamp(1-corrected/1800,.22,1);
+      if(r.tile===3){const hash=Math.sin((r.mapX*29+r.mapY*41+x*.21))*0.5+0.5,bermTop=top+wallH*(.48+hash*.10),leafTop=top-wallH*(.05+hash*.16);ctx.fillStyle=shadeColor(hash>.5?'#70533a':'#5f4934',shade*.95);ctx.fillRect(x,bermTop,2,Math.max(2,bottom-bermTop));ctx.fillStyle=shadeColor(hash>.66?'#243f27':hash>.33?'#2f5130':'#365c34',shade);ctx.fillRect(x,leafTop,2,Math.max(2,bermTop-leafTop));if((Math.floor(x/5)+r.mapX*3+r.mapY)%11===0){ctx.fillStyle=shadeColor('#4b3424',shade*.9);ctx.fillRect(x,leafTop+wallH*.24,2,Math.max(2,bermTop-(leafTop+wallH*.24)));}if((Math.floor(x/9)+r.mapY)%7===0){ctx.fillStyle=`rgba(128,157,82,${.20*shade})`;ctx.fillRect(x,leafTop,2,wallH*.22);}}
+      else if(r.tile===1){const base=r.side?'#686861':'#827e72';ctx.fillStyle=shadeColor(base,shade);ctx.fillRect(x,top,2,wallH);if((Math.floor(top/16)+Math.floor(x/23))%2===0){ctx.fillStyle=`rgba(37,31,26,${.17*shade})`;ctx.fillRect(x,top,2,wallH);}if(x%28<2){ctx.fillStyle='rgba(228,220,193,.09)';ctx.fillRect(x,top,1,wallH);}}
+      else{const base=r.side?'#674226':'#82562f';ctx.fillStyle=shadeColor(base,shade);ctx.fillRect(x,top,2,wallH);if((x%18)<2){ctx.fillStyle='rgba(44,24,12,.35)';ctx.fillRect(x,top,2,wallH);}if((x%34)<2){ctx.fillStyle='rgba(218,172,105,.13)';ctx.fillRect(x,top,1,wallH);}ctx.fillStyle='rgba(34,22,14,.35)';ctx.fillRect(x,top,2,3);}
+    }
+  }
+
+  function shadeColor(hex,f){const n=parseInt(hex.slice(1),16),r=((n>>16)&255)*f,g=((n>>8)&255)*f,b=(n&255)*f;return `rgb(${r|0},${g|0},${b|0})`;}
+
+  function projectSprite(obj,height=56){
+    const dx=obj.x-player.x,dy=obj.y-player.y,d=Math.hypot(dx,dy),rel=normAng(Math.atan2(dy,dx)-player.angle);if(Math.abs(rel)>FOV*.62||d<8)return null;const sx=W/2+Math.tan(rel)*PROJ,scale=PROJ/d,bottom=horizon()+EYE*scale,sh=height*scale;return {sx,bottom,sh,d,rel};
+  }
+  function drawWorldSprites(){
+    let sprites=[];for(const it of items)sprites.push({kind:'item',obj:it,p:projectSprite(it,20)});for(const sap of saplings)if(!sap.dead)sprites.push({kind:'sapling',obj:sap,p:projectSprite(sap,72)});for(const s of soldiers)if(!s.dead)sprites.push({kind:'soldier',obj:s,p:projectSprite(s,60)});sprites=sprites.filter(v=>v.p).sort((a,b)=>b.p.d-a.p.d);
+    for(const s of sprites){const p=s.p;if(p.sx<-200||p.sx>W+200)continue;const zi=clamp(Math.floor(p.sx),0,W-1);if(p.d>zBuffer[zi]+18)continue;if(s.kind==='soldier')drawHumanShape(p.sx,p.bottom,p.sh,s.obj.side,s.obj.rank,clamp(1-p.d/1400,.35,1),true,s.obj);else if(s.kind==='item')drawItemSprite(s.obj,p);else drawSaplingSprite(s.obj,p);}
+  }
+  
+function drawHumanShape(x,bottom,h,side,rank,shade=1,health=true,obj=null){
+  const w=h*.34,headR=h*.087,phase=obj?(obj.moving?Math.sin(obj.walkPhase):0):Math.sin(state.time*2+x*.015),legSwing=phase*h*.10,armSwing=phase*h*.05,bounce=Math.abs(phase)*h*.015,lean=phase*.06;
+  const uniform=side==='american'
+    ?{coat:'#335d88',coatDark:'#1a3554',coatLight:'#4f79a6',facing:'#e8dfc8',strap:'#e1cf9a',cuff:'#c74a3d',pants:'#d8d1ba',gaiter:'#2d2c2a',hat:'#22211f',trim:'#bda268'}
+    :{coat:'#9d3b34',coatDark:'#69241f',coatLight:'#b9564e',facing:'#f0e4c4',strap:'#d6c8a0',cuff:'#e8d7ac',pants:'#d6d0c7',gaiter:'#262422',hat:'#1f1d1a',trim:'#d3b06a'};
+  const skin='#c99566',weaponId=obj?.weaponId||(side==='american'?'charleville':'brownBess');
+  ctx.save();ctx.globalAlpha=shade;ctx.lineCap='round';ctx.lineJoin='round';
+  const footY=bottom,kneeY=bottom-h*.19,hipY=bottom-h*.36,torsoTop=bottom-h*.74,headY=bottom-h*.84-bounce;
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(x,footY-h*.01,w*.48,h*.06,0,0,Math.PI*2);ctx.fill();
+  ctx.save();ctx.translate(x,0);ctx.rotate(lean);
+
+  const leftKneeX=-w*.12+legSwing*.42,rightKneeX=w*.12-legSwing*.42,leftFootX=-w*.20+legSwing,rightFootX=w*.20-legSwing;
+  ctx.strokeStyle=uniform.pants;ctx.lineWidth=Math.max(2,h*.082);ctx.beginPath();ctx.moveTo(-w*.12,hipY);ctx.lineTo(leftKneeX,kneeY);ctx.lineTo(leftFootX,footY-h*.05);ctx.moveTo(w*.12,hipY);ctx.lineTo(rightKneeX,kneeY);ctx.lineTo(rightFootX,footY-h*.05);ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=Math.max(1,h*.018);ctx.beginPath();ctx.moveTo(-w*.13,hipY+h*.03);ctx.lineTo(leftKneeX,kneeY+h*.01);ctx.moveTo(w*.13,hipY+h*.03);ctx.lineTo(rightKneeX,kneeY+h*.01);ctx.stroke();
+  ctx.strokeStyle=uniform.gaiter;ctx.lineWidth=Math.max(2,h*.09);ctx.beginPath();ctx.moveTo(leftFootX,footY-h*.08);ctx.lineTo(leftFootX,footY);ctx.moveTo(rightFootX,footY-h*.08);ctx.lineTo(rightFootX,footY);ctx.stroke();
+  ctx.strokeStyle='#2b241e';ctx.lineWidth=Math.max(2,h*.028);ctx.beginPath();ctx.moveTo(leftFootX-h*.025,footY-h*.01);ctx.lineTo(leftFootX+h*.04,footY-h*.01);ctx.moveTo(rightFootX-h*.025,footY-h*.01);ctx.lineTo(rightFootX+h*.04,footY-h*.01);ctx.stroke();
+
+  const coatGrad=ctx.createLinearGradient(0,torsoTop,0,bottom-h*.30);coatGrad.addColorStop(0,uniform.coatLight);coatGrad.addColorStop(.45,uniform.coat);coatGrad.addColorStop(1,uniform.coatDark);
+  ctx.fillStyle=uniform.coatDark;ctx.beginPath();ctx.moveTo(-w*.47,bottom-h*.56);ctx.lineTo(-w*.18,bottom-h*.28);ctx.lineTo(0,bottom-h*.39);ctx.lineTo(w*.18,bottom-h*.28);ctx.lineTo(w*.47,bottom-h*.56);ctx.lineTo(w*.16,bottom-h*.47);ctx.lineTo(0,bottom-h*.31);ctx.lineTo(-w*.16,bottom-h*.47);ctx.closePath();ctx.fill();
+  ctx.fillStyle=coatGrad;ctx.beginPath();ctx.roundRect(-w/2,torsoTop,w,h*.43,Math.max(2,h*.025));ctx.fill();
+  ctx.fillStyle=uniform.facing;ctx.beginPath();ctx.moveTo(-w*.11,torsoTop+h*.01);ctx.lineTo(-w*.02,bottom-h*.35);ctx.lineTo(-w*.28,bottom-h*.66);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(w*.11,torsoTop+h*.01);ctx.lineTo(w*.02,bottom-h*.35);ctx.lineTo(w*.28,bottom-h*.66);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=Math.max(1,h*.015);ctx.beginPath();ctx.moveTo(-w*.17,torsoTop+h*.05);ctx.lineTo(-w*.05,bottom-h*.37);ctx.moveTo(w*.17,torsoTop+h*.05);ctx.lineTo(w*.05,bottom-h*.37);ctx.stroke();
+  ctx.strokeStyle=uniform.strap;ctx.lineWidth=Math.max(2,h*.045);ctx.beginPath();ctx.moveTo(-w*.40,torsoTop+h*.07);ctx.lineTo(w*.35,bottom-h*.42);ctx.moveTo(w*.38,torsoTop+h*.07);ctx.lineTo(-w*.28,bottom-h*.42);ctx.stroke();
+  ctx.fillStyle=uniform.trim;for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(0,torsoTop+h*.09+i*h*.075,h*.013,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle=uniform.cuff;ctx.fillRect(-w*.47,bottom-h*.51,w*.13,h*.05);ctx.fillRect(w*.34,bottom-h*.51,w*.13,h*.05);
+
+  ctx.strokeStyle=uniform.coat;ctx.lineWidth=Math.max(3,h*.085);ctx.beginPath();ctx.moveTo(-w*.38,bottom-h*.66);ctx.lineTo(-w*.59,bottom-h*.50+armSwing);ctx.moveTo(w*.38,bottom-h*.66);ctx.lineTo(w*.57,bottom-h*.50-armSwing);ctx.stroke();
+  ctx.strokeStyle=uniform.facing;ctx.lineWidth=Math.max(2,h*.05);ctx.beginPath();ctx.moveTo(-w*.59,bottom-h*.50+armSwing);ctx.lineTo(-w*.66,bottom-h*.44+armSwing);ctx.moveTo(w*.57,bottom-h*.50-armSwing);ctx.lineTo(w*.64,bottom-h*.44-armSwing);ctx.stroke();
+
+  const firearm=weaponFor(weaponId),gunLen=firearm.kind==='pistol'?w*.76:firearm.kind==='carbine'?w*1.28:firearm.kind==='rifle'?w*1.82:w*1.74;
+  ctx.save();ctx.translate(-w*.43,bottom-h*.54);ctx.rotate(-.09+phase*.02);
+  const stockGrad=ctx.createLinearGradient(0,0,gunLen*.66,0);stockGrad.addColorStop(0,'#3a1d11');stockGrad.addColorStop(.35,'#965f36');stockGrad.addColorStop(.7,'#6e3f21');stockGrad.addColorStop(1,'#352014');
+  ctx.fillStyle=stockGrad;ctx.beginPath();ctx.moveTo(0,h*.015);ctx.quadraticCurveTo(gunLen*.09,-h*.012,gunLen*.28,0);ctx.lineTo(gunLen*.60,0);ctx.lineTo(gunLen*.72,h*.02);ctx.lineTo(gunLen*.54,h*.055);ctx.lineTo(gunLen*.12,h*.065);ctx.quadraticCurveTo(h*.01,h*.05,0,h*.015);ctx.fill();
+  const gunMetal=ctx.createLinearGradient(0,-h*.02,0,h*.05);gunMetal.addColorStop(0,'#1a1e20');gunMetal.addColorStop(.45,'#798184');gunMetal.addColorStop(.6,'#c0c4c2');gunMetal.addColorStop(1,'#2b3032');
+  ctx.fillStyle=gunMetal;ctx.fillRect(gunLen*.20,-h*.015,gunLen*.80,Math.max(1,h*.022));ctx.fillStyle='#171a1c';ctx.fillRect(gunLen*.20,-h*.015,gunLen*.80,Math.max(1,h*.005));
+  ctx.fillStyle='#c7b287';ctx.fillRect(gunLen*.17,h*.012,h*.085,h*.028);ctx.fillStyle='#282d2f';ctx.beginPath();ctx.arc(gunLen*.38,h*.055,h*.03,Math.PI*1.1,Math.PI*.1,true);ctx.strokeStyle='#2a2d2f';ctx.lineWidth=Math.max(1,h*.012);ctx.stroke();
+  if(firearm.kind!=='pistol'){ctx.fillStyle='#c2c7c5';ctx.beginPath();ctx.moveTo(gunLen*1.0,-h*.014);ctx.lineTo(gunLen*1.13,h*.003);ctx.lineTo(gunLen*1.0,h*.014);ctx.closePath();ctx.fill();}
+  ctx.restore();
+
+  const faceGrad=ctx.createRadialGradient(-headR*.18,headY-headR*.20,1,0,headY,headR*1.25);faceGrad.addColorStop(0,'#efc29c');faceGrad.addColorStop(.62,skin);faceGrad.addColorStop(1,'#8d5f3b');
+  ctx.fillStyle=faceGrad;ctx.beginPath();ctx.ellipse(0,headY,headR*.92,headR*1.10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(95,53,34,.35)';ctx.beginPath();ctx.ellipse(0,headY+headR*.38,headR*.32,headR*.10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#573726';ctx.beginPath();ctx.arc(0,headY-headR*.02,headR*.90,Math.PI,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(65,43,27,.45)';ctx.beginPath();ctx.moveTo(-headR*.95,headY-headR*.10);ctx.quadraticCurveTo(-headR*.6,headY+headR*.18,-headR*.45,headY+headR*.45);ctx.lineTo(-headR*.1,headY+headR*.4);ctx.lineTo(-headR*.3,headY-headR*.18);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(headR*.95,headY-headR*.10);ctx.quadraticCurveTo(headR*.6,headY+headR*.18,headR*.45,headY+headR*.45);ctx.lineTo(headR*.1,headY+headR*.4);ctx.lineTo(headR*.3,headY-headR*.18);ctx.closePath();ctx.fill();
+  ctx.fillStyle=uniform.hat;ctx.beginPath();ctx.moveTo(-headR*1.65,headY-headR*1.28);ctx.lineTo(0,headY-headR*1.95);ctx.lineTo(headR*1.65,headY-headR*1.28);ctx.lineTo(headR*.9,headY-headR*.93);ctx.lineTo(-headR*.9,headY-headR*.93);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(255,233,176,.32)';ctx.lineWidth=Math.max(1,h*.012);ctx.beginPath();ctx.moveTo(-headR*.85,headY-headR*1.12);ctx.lineTo(headR*.85,headY-headR*1.12);ctx.stroke();
+  ctx.fillStyle='#2a1e19';ctx.beginPath();ctx.arc(-headR*.28,headY-headR*.02,headR*.07,0,Math.PI*2);ctx.arc(headR*.28,headY-headR*.02,headR*.07,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(43,29,23,.7)';ctx.lineWidth=Math.max(1,h*.01);ctx.beginPath();ctx.moveTo(-headR*.42,headY-headR*.19);ctx.lineTo(-headR*.15,headY-headR*.15);ctx.moveTo(headR*.15,headY-headR*.15);ctx.lineTo(headR*.42,headY-headR*.19);ctx.moveTo(0,headY+headR*.01);ctx.lineTo(-headR*.05,headY+headR*.24);ctx.moveTo(-headR*.14,headY+headR*.36);ctx.quadraticCurveTo(0,headY+headR*.48,headR*.15,headY+headR*.35);ctx.stroke();
+  if(ranks.indexOf(rank)>=3){ctx.fillStyle=uniform.trim;ctx.fillRect(w*.42,bottom-h*.70,Math.max(1,h*.018),h*.10);ctx.fillRect(-w*.46,torsoTop+h*.02,w*.10,h*.018);}
+  if(obj?.reloading){const duration=obj.reloadDuration||reloadTimeFor(obj.rank,obj.weaponId);ctx.strokeStyle='#f2d478';ctx.lineWidth=Math.max(1,h*.025);ctx.beginPath();ctx.arc(0,bottom-h*.68,w*.78,-Math.PI/2,-Math.PI/2+Math.PI*2*(1-clamp(obj.reloadRemaining/duration,0,1)));ctx.stroke();}
+  ctx.restore();
+  ctx.restore();
+  if(health&&obj){const bw=Math.max(20,w*1.3),by=bottom-h-12;ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(x-bw/2,by,bw,5);ctx.fillStyle=obj.side==='american'?'#8fc1e9':'#e3a09b';ctx.fillRect(x-bw/2,by,bw*Math.max(0,obj.health)/100,5);if(h>35){ctx.fillStyle='#fff4d5';ctx.font=`${clamp(h*.13,9,14)}px Georgia`;ctx.textAlign='center';ctx.fillText(`${rank} · ${weaponFor(obj.weaponId).name}`,x,by-5);ctx.textAlign='left';}}
+}
+
+function drawItemSprite(it,p){
+    const size=clamp(p.sh*.62,6,38),y=p.bottom-size*.38;ctx.save();ctx.translate(p.sx,y);it.phase+=.02;ctx.translate(0,Math.sin(it.phase)*1.6);ctx.lineWidth=Math.max(1,size*.05);
+    if(it.type==='rock'){ctx.fillStyle='#737977';ctx.strokeStyle='#3d423f';ctx.beginPath();ctx.moveTo(-size*.33,size*.15);ctx.lineTo(-size*.24,-size*.24);ctx.lineTo(size*.08,-size*.34);ctx.lineTo(size*.34,-size*.05);ctx.lineTo(size*.23,size*.27);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='rgba(255,255,255,.25)';ctx.beginPath();ctx.moveTo(-size*.18,-size*.13);ctx.lineTo(size*.07,-size*.23);ctx.stroke();}
+    else if(it.type==='branch'){ctx.strokeStyle='#5f391f';ctx.lineWidth=Math.max(2,size*.16);ctx.beginPath();ctx.moveTo(-size*.48,size*.25);ctx.lineTo(size*.46,-size*.23);ctx.moveTo(-size*.02,0);ctx.lineTo(size*.12,-size*.38);ctx.moveTo(size*.18,-size*.1);ctx.lineTo(size*.42,size*.10);ctx.stroke();}
+    else if(it.type==='wood'){ctx.rotate(-.22);ctx.fillStyle='#8a552c';ctx.fillRect(-size*.58,-size*.18,size*1.15,size*.36);ctx.strokeStyle='#4e2c17';ctx.strokeRect(-size*.58,-size*.18,size*1.15,size*.36);ctx.fillStyle='#c08a55';ctx.beginPath();ctx.ellipse(size*.57,0,size*.09,size*.18,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(63,35,18,.45)';ctx.beginPath();ctx.arc(size*.57,0,size*.05,0,Math.PI*2);ctx.stroke();}
+    else if(it.type==='powder'){ctx.fillStyle='#3c2f22';ctx.beginPath();ctx.moveTo(-size*.24,size*.28);ctx.lineTo(-size*.30,-size*.12);ctx.quadraticCurveTo(0,-size*.43,size*.30,-size*.12);ctx.lineTo(size*.24,size*.28);ctx.closePath();ctx.fill();ctx.strokeStyle='#b78a49';ctx.stroke();ctx.fillStyle='#b78a49';ctx.fillRect(-size*.08,-size*.42,size*.16,size*.16);ctx.strokeStyle='#d5c49a';ctx.beginPath();ctx.arc(0,-size*.08,size*.38,Math.PI*.1,Math.PI*.9);ctx.stroke();}
+    else{ctx.fillStyle='#d9cfad';ctx.beginPath();ctx.roundRect(-size*.13,-size*.40,size*.26,size*.72,size*.06);ctx.fill();ctx.strokeStyle='#746a55';ctx.stroke();ctx.fillStyle='#4b5052';ctx.beginPath();ctx.arc(0,size*.23,size*.11,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#9b875a';ctx.beginPath();ctx.moveTo(-size*.13,-size*.12);ctx.lineTo(size*.13,-size*.12);ctx.stroke();}
+    ctx.restore();
+  }
+
+  function drawSaplingSprite(s,p){
+    const h=p.sh,w=h*.48;ctx.save();ctx.translate(p.sx,p.bottom);ctx.strokeStyle='#4c2c19';ctx.lineCap='round';ctx.lineWidth=Math.max(2,w*.14);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-h*.62);ctx.stroke();ctx.lineWidth=Math.max(1,w*.07);for(const [x1,y1,x2,y2] of [[0,-h*.38,-w*.36,-h*.62],[0,-h*.48,w*.38,-h*.71],[0,-h*.57,-w*.22,-h*.82]]){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+    const leaves=[[-.28,-.69,.34],[.22,-.75,.37],[0,-.88,.40],[-.05,-.58,.32],[.36,-.58,.28]];for(const [lx,ly,r] of leaves){ctx.fillStyle=r>.35?'#345f34':'#427440';ctx.beginPath();ctx.arc(lx*w,ly*h,r*w,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(120,155,82,.25)';ctx.beginPath();ctx.arc(lx*w-r*w*.18,ly*h-r*w*.18,r*w*.58,0,Math.PI*2);ctx.fill();}ctx.restore();
+  }
+
+  function drawHand(x,y,rot,skin,scale=1){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.fillStyle=skin.cuff;ctx.beginPath();ctx.roundRect(-28*scale,-15*scale,35*scale,30*scale,8*scale);ctx.fill();ctx.fillStyle='#c8946c';ctx.beginPath();ctx.ellipse(15*scale,0,23*scale,17*scale,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,224,197,.22)';ctx.beginPath();ctx.ellipse(10*scale,-5*scale,12*scale,7*scale,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(75,42,30,.35)';ctx.lineWidth=1.5;for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(17*scale,-8*scale+i*6*scale);ctx.lineTo(30*scale,-7*scale+i*6*scale);ctx.stroke();}ctx.restore();}
+  function drawWeaponView(){
+    const motion=player?.moveBlend||0,moving=motion>.08,bob=(player?.viewBob||0)*6+Math.sin(state.time*1.8)*.8,sway=Math.cos((player?.stepCycle||state.time*4.5)*.5)*(1+motion*4),skin=skins[state.equippedSkin]||skins.continental,firearm=weapons[player.weapon];
+    if(!firearm){ctx.save();ctx.translate(W*.72+sway,H*.84+bob);ctx.rotate(-.28);if(player.weapon==='rock'){const g=ctx.createRadialGradient(90,25,5,90,25,55);g.addColorStop(0,'#9a9e98');g.addColorStop(1,'#454a46');ctx.fillStyle=g;ctx.strokeStyle='#303532';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(55,65);ctx.lineTo(68,18);ctx.lineTo(110,8);ctx.lineTo(133,42);ctx.lineTo(112,76);ctx.closePath();ctx.fill();ctx.stroke();drawHand(48,79,-.1,skin);}else{ctx.fillStyle='#6d4627';ctx.fillRect(30,18,225,15);ctx.strokeStyle='#3d2515';ctx.strokeRect(30,18,225,15);ctx.fillStyle='#c1c4c0';if(player.weapon==='axe'){ctx.beginPath();ctx.moveTo(205,-10);ctx.lineTo(285,2);ctx.lineTo(277,60);ctx.lineTo(207,45);ctx.closePath();ctx.fill();}else if(player.weapon==='sword'){ctx.fillRect(125,21,210,7);ctx.fillStyle='#b58c43';ctx.fillRect(102,7,8,48);}else{ctx.beginPath();ctx.moveTo(230,22);ctx.lineTo(305,22);ctx.lineTo(230,35);ctx.fill();}drawHand(45,58,0,skin);}ctx.restore();return;}
+    const pistol=firearm.visual==='pistol'||firearm.visual==='pairPistols',carbine=firearm.visual==='carbine',rifle=firearm.visual==='rifle';
+    const reloadP=player.reloading?clamp(player.reloadElapsed/player.reloadDuration,0,1):0,recoil=Math.max(0,player.fireCooldown/firearm.cooldown)*18;
+    const anchorX=W*.84+sway,anchorY=H*.91+bob,aimX=W*.5,aimY=H*.5,baseAngle=Math.atan2(aimY-anchorY,aimX-anchorX),lower=player.reloading?(Math.sin(Math.PI*reloadP)*.18+(pistol?.05:.11)):0;
+    const scale=pistol?.72:carbine?.86:rifle?1.03:.96,length=(pistol?255:carbine?355:rifle?465:430)*scale;ctx.save();ctx.translate(anchorX,anchorY+recoil);ctx.rotate(baseAngle+lower);
+    const wood=ctx.createLinearGradient(-30,-20,length*.75,30);wood.addColorStop(0,'#3b1d11');wood.addColorStop(.23,'#9e6539');wood.addColorStop(.52,'#70401f');wood.addColorStop(.75,'#a06a3d');wood.addColorStop(1,'#382016');ctx.fillStyle=wood;ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=10;ctx.beginPath();ctx.moveTo(-55,28);ctx.quadraticCurveTo(-20,-2,30,7);ctx.lineTo(length*.55,7);ctx.lineTo(length*.71,18);ctx.lineTo(length*.52,34);ctx.lineTo(35,39);ctx.quadraticCurveTo(-18,63,-55,28);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#2a160e';ctx.lineWidth=3;ctx.stroke();
+    const barrelStart=34,barrelEnd=length;const metal=ctx.createLinearGradient(0,-9,0,9);metal.addColorStop(0,'#171b1c');metal.addColorStop(.42,'#697174');metal.addColorStop(.58,'#b2b7b5');metal.addColorStop(1,'#282d2e');ctx.fillStyle=metal;ctx.fillRect(barrelStart,-2,barrelEnd-barrelStart,11);ctx.fillStyle='#0d1011';ctx.fillRect(barrelStart,-2,barrelEnd-barrelStart,2);ctx.fillStyle='#c0b79f';ctx.fillRect(barrelStart,12,(barrelEnd-barrelStart)*.88,3);
+    const brass=ctx.createLinearGradient(78,0,145,26);brass.addColorStop(0,'#6f562e');brass.addColorStop(.45,'#d0b16a');brass.addColorStop(1,'#806237');ctx.fillStyle=brass;ctx.beginPath();ctx.roundRect(76,3,62,27,5);ctx.fill();ctx.strokeStyle='#544326';ctx.stroke();ctx.fillStyle='#222628';ctx.lineWidth=4;ctx.beginPath();ctx.arc(112,27,14,Math.PI*.05,Math.PI*.9);ctx.stroke();ctx.fillRect(126,-9,8,26);ctx.fillStyle='#d0b268';ctx.fillRect(153,4,8,31);
+    if(!pistol&&firearm.kind!=='rifle'){ctx.fillStyle='#bfc5c3';ctx.beginPath();ctx.moveTo(barrelEnd,-2);ctx.lineTo(barrelEnd+58,3);ctx.lineTo(barrelEnd,9);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(255,255,255,.5)';ctx.fillRect(barrelEnd+6,2,35,1);}
+    drawHand(-20,35,-.03,skin,pistol?.86:1);drawHand(length*.29,45,.12,skin,pistol?.82:.92);
+    if(player.reloading){
+      const kind=firearm.kind;let hx,hy,hr,tool='cartridge';if(pistol){if(reloadP<.36){const q=reloadP/.36;hx=length*.18*(1-q)+length*.73*q;hy=62*(1-q)-35*q;hr=-.8*q;}else if(reloadP<.68){const q=(reloadP-.36)/.32;hx=length*.73;hy=-35+q*20;hr=-.8;tool='powder';}else{const q=(reloadP-.68)/.32;hx=length*.73*(1-q)+length*.28*q;hy=-15*(1-q)+45*q;hr=-.8*(1-q);tool='ramrod';}}
+      else{if(reloadP<.22){const q=reloadP/.22;hx=length*.28*(1-q)+length*.86*q;hy=45*(1-q)-50*q;hr=-.9*q;}else if(reloadP<.48){const q=(reloadP-.22)/.26;hx=length*.86;hy=-50+q*32;hr=-.9;tool='powder';}else if(reloadP<.82){const q=(reloadP-.48)/.34;hx=length*.84;hy=-18+Math.sin(q*Math.PI)*34;hr=-1.1;tool='ramrod';}else{const q=(reloadP-.82)/.18;hx=length*.84*(1-q)+length*.29*q;hy=-18*(1-q)+45*q;hr=-1.1*(1-q);tool='ramrod';}}
+      drawHand(hx,hy,hr,skin,.92);if(tool==='cartridge'||tool==='powder'){ctx.save();ctx.translate(hx+16,hy-22);ctx.rotate(hr);ctx.fillStyle='#e6ddc2';ctx.fillRect(-5,-21,11,40);ctx.strokeStyle='#756b55';ctx.strokeRect(-5,-21,11,40);ctx.fillStyle='#444';ctx.fillRect(-4,12,9,5);ctx.restore();}if(tool==='ramrod'){ctx.save();ctx.translate(hx+12,hy-10);ctx.rotate(hr+.12);ctx.fillStyle='#aeb5b3';ctx.fillRect(-3,-55,5,112);ctx.fillStyle='#5e4a2c';ctx.fillRect(-5,-60,9,8);ctx.restore();}
+    }
+    if(firearm.visual==='pairPistols'){ctx.save();ctx.translate(-18,-47);ctx.rotate(.10);ctx.fillStyle=wood;ctx.fillRect(0,18,155,25);ctx.fillStyle=metal;ctx.fillRect(62,8,185,9);ctx.restore();}
+    ctx.restore();
+  }
+
+  function drawCrosshair(){const firearm=weapons[player.weapon],skill=skillFor(player.rank),spread=firearm?clamp(5+firearm.spread*480*skill.aim,6,18):10;ctx.strokeStyle='rgba(255,248,220,.92)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W/2-spread-8,H/2);ctx.lineTo(W/2-spread,H/2);ctx.moveTo(W/2+spread,H/2);ctx.lineTo(W/2+spread+8,H/2);ctx.moveTo(W/2,H/2-spread-8);ctx.lineTo(W/2,H/2-spread);ctx.moveTo(W/2,H/2+spread);ctx.lineTo(W/2,H/2+spread+8);ctx.stroke();ctx.fillStyle='rgba(255,248,220,.86)';ctx.beginPath();ctx.arc(W/2,H/2,1.6,0,Math.PI*2);ctx.fill();}
+
+  function drawScreenEffects(){for(const e of effects){if(e.type==='muzzle'){ctx.fillStyle=`rgba(255,235,176,${e.t*3})`;ctx.beginPath();ctx.arc(W*.85,H*.69,50*(1-e.t)+12,0,Math.PI*2);ctx.fill();}if(e.type==='hitMarker'){ctx.strokeStyle=e.zone==='head'?`rgba(255,220,100,${e.t*4})`:`rgba(255,255,225,${e.t*4})`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(W/2-13,H/2-13);ctx.lineTo(W/2-5,H/2-5);ctx.moveTo(W/2+13,H/2-13);ctx.lineTo(W/2+5,H/2-5);ctx.moveTo(W/2-13,H/2+13);ctx.lineTo(W/2-5,H/2+5);ctx.moveTo(W/2+13,H/2+13);ctx.lineTo(W/2+5,H/2+5);ctx.stroke();}if(e.type==='damageFlash'){ctx.fillStyle=`rgba(145,25,20,${e.t*.65})`;ctx.fillRect(0,0,W,H);}if(e.type==='coin'){ctx.fillStyle=`rgba(255,224,132,${Math.min(1,e.t)})`;ctx.font='bold 24px Georgia';ctx.textAlign='center';ctx.fillText(e.text,W/2,H*.39-(1.25-e.t)*24);ctx.textAlign='left';}if(e.type==='hitPoint'){ctx.fillStyle=`rgba(255,246,190,${Math.min(1,e.t*1.6)})`;ctx.font='bold 20px Georgia';ctx.textAlign='center';ctx.fillText(e.text,W/2+34,H/2-34-(.8-e.t)*18);ctx.textAlign='left';}}
+  }
+  function updateEffects(dt){for(const e of effects)e.t-=dt;effects=effects.filter(e=>e.t>0);state.cameraShake=Math.max(0,state.cameraShake-dt*24);}
+
+  let audioCtx=null;function sound(type){try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);const m={shot:[82,.12,.15],enemyShot:[72,.09,.08],allyShot:[95,.09,.07],pickup:[520,.05,.05],build:[180,.07,.07],hit:[130,.05,.05],throw:[260,.04,.04],reload:[430,.05,.05],climb:[200,.04,.04]};const [f,d,v]=m[type]||[220,.04,.04];o.frequency.value=f;o.type=type.includes('Shot')||type==='shot'?'sawtooth':'triangle';g.gain.setValueAtTime(v,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+d);o.start();o.stop(audioCtx.currentTime+d);}catch(_){}}
+
+  function loop(t){const dt=Math.min(.034,(t-last)/1000);last=t;update(dt);draw();requestAnimationFrame(loop);}requestAnimationFrame(loop);
+
+  function bindTouchControls(){
+    if(!isTouchDevice)return;
+    const pad=$('movePad'),stick=$('moveStick'),look=$('lookZone');
+    const resetStick=()=>{touchState.moveId=null;touchState.moveX=0;touchState.moveY=0;stick.style.transform='translate(-50%,-50%)';};
+    const updateStick=(e)=>{const r=pad.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=r.width*.34,len=Math.hypot(dx,dy)||1,scale=Math.min(1,max/len),px=dx*scale,py=dy*scale;touchState.moveX=clamp(px/max,-1,1);touchState.moveY=clamp(py/max,-1,1);stick.style.transform=`translate(calc(-50% + ${px}px),calc(-50% + ${py}px))`;};
+    pad.addEventListener('pointerdown',e=>{e.preventDefault();touchState.moveId=e.pointerId;pad.setPointerCapture?.(e.pointerId);updateStick(e);});
+    pad.addEventListener('pointermove',e=>{if(e.pointerId===touchState.moveId){e.preventDefault();updateStick(e);}});
+    pad.addEventListener('pointerup',e=>{if(e.pointerId===touchState.moveId)resetStick();});pad.addEventListener('pointercancel',resetStick);
+    look.addEventListener('pointerdown',e=>{if(e.target!==look)return;e.preventDefault();touchState.lookId=e.pointerId;touchState.lastLookX=e.clientX;touchState.lastLookY=e.clientY;look.setPointerCapture?.(e.pointerId);});
+    look.addEventListener('pointermove',e=>{if(e.pointerId!==touchState.lookId||state.paused||!player)return;e.preventDefault();const dx=e.clientX-touchState.lastLookX,dy=e.clientY-touchState.lastLookY;touchState.lastLookX=e.clientX;touchState.lastLookY=e.clientY;const sens=.0041;player.angle=normAng(player.angle+dx*sens);player.pitch=clamp(player.pitch-dy*sens*.78,-.55,.55);});
+    const endLook=e=>{if(e.pointerId===touchState.lookId)touchState.lookId=null;};look.addEventListener('pointerup',endLook);look.addEventListener('pointercancel',endLook);
+    const tap=(id,fn)=>$(id).addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(state.running&&!state.paused)fn();});
+    tap('mFire',fireWeapon);tap('mReload',beginReload);tap('mUse',interact);tap('mVault',vault);tap('mCraft',toggleCraft);tap('mRock',()=>{player.weapon='rock';player.reloading=false;player.reloadElapsed=0;throwRock();});
+    tap('mWeapon',()=>{player.weapon=player.rankWeapon;player.reloading=false;player.reloadElapsed=0;message(weaponFor(player.rankWeapon).name,1);});
+    $('mRun').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();touchState.run=!touchState.run;$('mRun').classList.toggle('active',touchState.run);});
+  }
+
+  window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[k]=true;if(e.key==='Shift')keys.shift=true;if(['w','a','s','d','shift','tab',' '].includes(k))e.preventDefault();if(!state.running)return;if(k==='r')beginReload();if(k==='e')interact();if(k==='q')throwRock();if(k==='v')buildWall();if(k==='f')buildFort();if(k==='c')vault();if(k==='1'){player.weapon=player.rankWeapon;player.reloading=false;player.reloadElapsed=0;}if(k==='2'){player.weapon='rock';player.reloading=false;player.reloadElapsed=0;}if(k==='3'){player.weapon=meleeFor(player.rank);player.reloading=false;player.reloadElapsed=0;}if(k==='4'){player.weapon='axe';player.reloading=false;player.reloadElapsed=0;}if(k==='tab')toggleCraft();if(k==='p')pauseGame();});
+  window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.key==='Shift')keys.shift=false;});
+  window.addEventListener('mousemove',e=>{if(document.pointerLockElement===canvas&&state.running&&!state.paused){const sens=Number(state.sensitivity);player.angle=normAng(player.angle+e.movementX*sens);player.pitch=clamp(player.pitch-e.movementY*sens*.78,-.55,.55);}});
+  canvas.addEventListener('mousedown',e=>{if(!state.running)return;if(document.pointerLockElement!==canvas){enterBattle();return;}if(e.button===0)fireWeapon();});canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  document.addEventListener('pointerlockchange',()=>{if(isTouchDevice)return;if(state.running&&document.pointerLockElement!==canvas&&!state.paused&&!ui.craft.classList.contains('hidden'))return;if(state.running&&document.pointerLockElement!==canvas&&!state.paused){state.paused=true;ui.click.classList.remove('hidden');}});
+
+  $('storyBtn').onclick=()=>resetWorld('story');$('freeBtn').onclick=()=>{if(state.storyComplete)resetWorld('free');};$('uniformBtn').onclick=()=>{renderSkinStore();showOnly(ui.uniform);};$('settingsBtn').onclick=()=>showOnly(ui.settings);$('howBtn').onclick=()=>showOnly(ui.how);
+  $('settingsBack').onclick=()=>{state.reloadProfile=$('reloadSetting').value;state.difficulty=$('difficultySetting').value;state.sensitivity=$('sensitivitySetting').value;state.shake=$('shakeSetting').value;persist();showOnly(ui.main);};$('howBack').onclick=()=>showOnly(ui.main);$('uniformBack').onclick=()=>{updateMenu();showOnly(ui.main);};
+  $('enterBattle').onclick=enterBattle;$('resumeBtn').onclick=resumeGame;$('restartBtn').onclick=()=>resetWorld(state.story?'story':'free');$('quitBtn').onclick=()=>{state.running=false;state.mode='menu';if(document.pointerLockElement)document.exitPointerLock();ui.hud.classList.add('hidden');showOnly(ui.main);updateMenu();};
+  $('endReplay').onclick=()=>resetWorld(state.story?'story':'free');$('endMenu').onclick=()=>{state.mode='menu';showOnly(ui.main);updateMenu();};$('closeCraft').onclick=toggleCraft;document.querySelectorAll('[data-craft]').forEach(b=>b.onclick=()=>craft(b.dataset.craft));
+
+  bindTouchControls();if(!state.ownedSkins.includes('continental'))state.ownedSkins.unshift('continental');if(!skins[state.equippedSkin])state.equippedSkin='continental';updateMenu();renderSkinStore();cloneMap();player={x:2.5*TILE,y:8.5*TILE,angle:0,pitch:0,rank:'Private',weapon:'charleville'};draw();
+})();
+</script>
+</body>
+</html>
